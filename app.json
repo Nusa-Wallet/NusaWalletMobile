@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "NusaWallet",
+    "slug": "nusawallet",
+    "version": "0.1.0",
+    "scheme": "nusawallet",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0E2148"
+    },
+    "ios": { "supportsTablet": true },
+    "android": {
+      "adaptiveIcon": { "backgroundColor": "#0E2148" }
+    },
+    "web": { "bundler": "metro", "output": "single" },
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true }
+  }
+}
