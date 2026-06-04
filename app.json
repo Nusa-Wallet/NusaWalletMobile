@@ -10,12 +10,25 @@
     "splash": {
       "backgroundColor": "#0E2148"
     },
-    "ios": { "supportsTablet": true },
-    "android": {
-      "adaptiveIcon": { "backgroundColor": "#0E2148" }
+    "ios": {
+      "supportsTablet": true
     },
-    "web": { "bundler": "metro", "output": "single" },
-    "plugins": ["expo-router"],
-    "experiments": { "typedRoutes": true }
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0E2148"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-asset",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
