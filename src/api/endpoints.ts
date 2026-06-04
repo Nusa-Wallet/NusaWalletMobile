@@ -31,8 +31,11 @@ export const AuthApi = {
 };
 
 export const WalletApi = {
+  rates: () => api.get<Record<string, number>>("/wallets/rates"),
   list: () => api.get<WalletBalance[]>("/wallets"),
   history: (ccy: string) => api.get<LedgerEntry[]>(`/wallets/${ccy}/history`),
+  recentTransactions: (limit = 10) =>
+    api.get<LedgerEntry[]>(`/wallets/transactions/recent?limit=${limit}`),
   convert: (from_currency: string, to_currency: string, amount: number) =>
     api.post("/settlement/convert", { from_currency, to_currency, amount }),
 };

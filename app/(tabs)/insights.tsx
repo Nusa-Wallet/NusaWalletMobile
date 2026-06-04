@@ -5,14 +5,31 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { FxAdvisory, InsightsApi } from "@/api/endpoints";
-import { Card } from "@/components/ui";
 import { colors, radius, spacing } from "@/theme/colors";
 
-// Insights — Design 12. AI FX recommendation (Decision-Support).
-const ACTION_LABEL: Record<string, { text: string; color: string }> = {
-  CONVERT_NOW: { text: "Konversi Sekarang", color: colors.success },
-  WAIT: { text: "Tunggu", color: colors.warning },
-  HOLD: { text: "Tahan", color: colors.textSecondary },
+// Mock monthly income data (Juta IDR)
+const MONTHLY = [
+  { label: "Jan", val: 52 },
+  { label: "Feb", val: 61 },
+  { label: "Mar", val: 58 },
+  { label: "Apr", val: 70 },
+  { label: "Mei", val: 65 },
+  { label: "Jun", val: 75 },
+];
+const BAR_MAX = 80;
+
+// Currency usage distribution
+const CCY_USAGE = [
+  { label: "USD", pct: 55, color: "#2563EB" },
+  { label: "EUR", pct: 20, color: "#7C3AED" },
+  { label: "SGD", pct: 18, color: "#16A34A" },
+  { label: "MYR", pct: 7, color: "#F97316" },
+];
+
+const ACTION_META: Record<string, { text: string; bg: string }> = {
+  CONVERT_NOW: { text: "Konversi", bg: "#0E2148" },
+  WAIT: { text: "Tunggu", bg: "#D97706" },
+  HOLD: { text: "Tahan", bg: "#64748B" },
 };
 
 export default function Insights() {
@@ -21,72 +38,204 @@ export default function Insights() {
 
   useFocusEffect(
     useCallback(() => {
-      InsightsApi.fxAdvisory("SGD", "IDR")
+      InsightsApi.fxAdvisory("USD", "IDR")
         .then((r) => { setAdv(r.data); setError(null); })
-        .catch(() => setError("AI service belum aktif (jalankan NusaWalletAI di port 8001)."));
+        .catch(() => setError("AI service offline (port 8001)."));
     }, [])
   );
 
-  const action = adv ? ACTION_LABEL[adv.action] : null;
+  const action = adv ? ACTION_META[adv.action] : null;
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-        <Text style={styles.header}>Insights</Text>
+    <SafeAreaView style={s.safe} edges={["top"]}>
+      <ScrollView contentContainerStyle={s.scroll}>
 
-        {error && <Card><Text style={{ color: colors.danger }}>{error}</Text></Card>}
+        <Text style={s.header}>Insights</Text>
 
-        {adv && (
-          <Card style={{ gap: spacing.sm }}>
-            <View style={styles.rowBetween}>
-              <Text style={styles.cardTitle}>Rekomendasi AI · {adv.pair}</Text>
-              <View style={[styles.badge, { backgroundColor: action?.color }]}>
-                <Text style={styles.badgeText}>{action?.text}</Text>
+        {/* ── Summary cards ── */}
+        <View style={s.summaryRow}>
+          <View style={s.summaryCard}>
+            <Ionicons name="trending-up" size={20} color="#0EA5E9" />
+            <Text style={s.summaryLabel}>Pendapatan</Text>
+            <Text style={s.summaryVal}>Rp 75M</Text>
+          </View>
+          <View style={s.summaryCard}>
+            <Ionicons name="checkmark-circle" size={20} color="#16A34A" />
+            <Text style={s.summaryLabel}>Penghematan</Text>
+            <Text style={s.summaryVal}>Rp 2.4M</Text>
+          </View>
+        </View>
+
+        {/* ── Bar chart ── */}
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Pendapatan Bulanan (Juta Rp)</Text>
+          <View style={s.barChart}>
+            {MONTHLY.map((m) => (
+              <View key={m.label} style={s.barCol}>
+                <View style={s.barTrack}>
+                  <View style={[s.bar, { height: `${(m.val / BAR_MAX) * 100}%` }]} />
+                </View>
+                <Text style={s.barLabel}>{m.label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* ── Currency donut ── */}
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Penggunaan Mata Uang</Text>
+          <View style={s.donutRow}>
+            {/* Simplified ring chart */}
+            <View style={s.donutWrap}>
+              <View style={s.donutOuter}>
+                <View style={s.donutInner} />
+                {/* Colored arcs approximated with border trick */}
+                <View style={[s.donutArc, { borderColor: "#2563EB" }]} />
+              </View>
+              {/* Colored overlay segments */}
+              <View style={[StyleSheet.absoluteFill, s.donutOuter, { borderColor: "#7C3AED", opacity: 0.8,
+                transform: [{ rotate: "198deg" }] }]} />
+              <View style={[StyleSheet.absoluteFill, s.donutOuter, { borderColor: "#16A34A", opacity: 0.8,
+                transform: [{ rotate: "270deg" }] }]} />
+              <View style={[StyleSheet.absoluteFill, s.donutOuter, { borderColor: "#F97316", opacity: 0.9,
+                transform: [{ rotate: "334.8deg" }] }]} />
+              <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}>
+                <View style={s.donutHole} />
               </View>
             </View>
-            <Text style={styles.rationale}>{adv.rationale}</Text>
 
-            <View style={styles.metricRow}>
-              <Metric label="Kurs Sekarang" value={adv.current_rate.toLocaleString("id-ID")} />
-              <Metric label="Rata-rata 7H" value={adv.ma_7d.toLocaleString("id-ID")} />
+            <View style={s.donutLegend}>
+              {CCY_USAGE.map((c) => (
+                <View key={c.label} style={s.legendRow}>
+                  <View style={[s.legendDot, { backgroundColor: c.color }]} />
+                  <Text style={s.legendLabel}>{c.label}</Text>
+                  <Text style={s.legendPct}>{c.pct}%</Text>
+                </View>
+              ))}
             </View>
-            <View style={styles.metricRow}>
-              <Metric label="Skenario Terbaik" value={adv.scenario_best.toLocaleString("id-ID")} />
-              <Metric label="Skenario Terburuk" value={adv.scenario_worst.toLocaleString("id-ID")} />
+          </View>
+        </View>
+
+        {/* ── AI Recommendation ── */}
+        {error && (
+          <View style={[s.card, { borderColor: "#FEE2E2", borderWidth: 1 }]}>
+            <Text style={{ color: colors.danger, fontSize: 13 }}>{error}</Text>
+          </View>
+        )}
+
+        {adv && action && (
+          <View style={s.card}>
+            <View style={s.aiHeader}>
+              <View style={s.aiIconWrap}>
+                <Ionicons name="globe-outline" size={18} color={colors.accent} />
+              </View>
+              <Text style={s.aiTitle}>Rekomendasi AI</Text>
+              <View style={[s.aiBadge, { backgroundColor: action.bg }]}>
+                <Text style={s.aiBadgeText}>{action.text}</Text>
+              </View>
             </View>
 
-            <View style={styles.confRow}>
-              <Ionicons name="shield-checkmark-outline" size={16} color={colors.accent} />
-              <Text style={styles.conf}>Confidence Level: {(adv.confidence * 100).toFixed(0)}%</Text>
+            <Text style={s.aiDesc}>{adv.rationale}</Text>
+
+            {/* Confidence bar */}
+            <View style={{ marginTop: spacing.md }}>
+              <View style={s.confRow}>
+                <Text style={s.confLabel}>Confidence</Text>
+                <Text style={[s.confLabel, { color: colors.accent, fontWeight: "700" }]}>
+                  {(adv.confidence * 100).toFixed(0)}%
+                </Text>
+              </View>
+              <View style={s.confTrack}>
+                <View style={[s.confFill, { width: `${adv.confidence * 100}%` }]} />
+              </View>
             </View>
-          </Card>
+
+            {/* Scenarios */}
+            <View style={s.scenarioRow}>
+              <View style={s.scenarioCard}>
+                <Text style={s.scenarioLabel}>Terbaik</Text>
+                <Text style={[s.scenarioVal, { color: "#16A34A" }]}>
+                  +Rp {Math.round((adv.scenario_best - adv.current_rate) * 1000).toLocaleString("id-ID")}
+                </Text>
+                <Text style={s.scenarioSub}>Rp {adv.scenario_best.toLocaleString("id-ID")}</Text>
+              </View>
+              <View style={s.scenarioCard}>
+                <Text style={s.scenarioLabel}>Moderat</Text>
+                <Text style={[s.scenarioVal, { color: colors.textSecondary }]}>– –</Text>
+                <Text style={s.scenarioSub}>Rp {adv.current_rate.toLocaleString("id-ID")}</Text>
+              </View>
+            </View>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.metric}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={styles.metricValue}>{value}</Text>
-    </View>
-  );
-}
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: 40 },
+  header: { fontSize: 22, fontWeight: "700", color: colors.textPrimary, marginBottom: 4 },
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { fontSize: 22, fontWeight: "700", color: colors.textPrimary },
-  cardTitle: { fontWeight: "700", color: colors.textPrimary, flex: 1 },
-  rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  badge: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.sm },
-  badgeText: { color: "#fff", fontWeight: "700", fontSize: 12 },
-  rationale: { color: colors.textSecondary, lineHeight: 20 },
-  metricRow: { flexDirection: "row", gap: spacing.sm },
-  metric: { flex: 1, backgroundColor: colors.background, borderRadius: radius.md, padding: spacing.sm },
-  metricLabel: { color: colors.textSecondary, fontSize: 12 },
-  metricValue: { color: colors.textPrimary, fontWeight: "700", fontSize: 16 },
-  confRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: spacing.xs },
-  conf: { color: colors.accent, fontWeight: "600" },
+  // Summary
+  summaryRow: { flexDirection: "row", gap: spacing.sm },
+  summaryCard: {
+    flex: 1, backgroundColor: colors.card, borderRadius: radius.lg,
+    padding: spacing.md, borderWidth: 1, borderColor: colors.border, gap: 4,
+  },
+  summaryLabel: { color: colors.textSecondary, fontSize: 12, marginTop: 4 },
+  summaryVal: { color: colors.textPrimary, fontWeight: "800", fontSize: 18 },
+
+  // Card
+  card: {
+    backgroundColor: colors.card, borderRadius: radius.lg,
+    padding: spacing.md, borderWidth: 1, borderColor: colors.border,
+  },
+  cardTitle: { fontWeight: "700", color: colors.textPrimary, marginBottom: spacing.md },
+
+  // Bar chart
+  barChart: { flexDirection: "row", gap: 8, height: 120, alignItems: "flex-end" },
+  barCol: { flex: 1, alignItems: "center", gap: 4 },
+  barTrack: { flex: 1, width: "100%", justifyContent: "flex-end" },
+  bar: { width: "100%", backgroundColor: colors.accent, borderRadius: 4, minHeight: 8 },
+  barLabel: { color: colors.textSecondary, fontSize: 11 },
+
+  // Donut
+  donutRow: { flexDirection: "row", alignItems: "center", gap: spacing.lg },
+  donutWrap: { width: 110, height: 110 },
+  donutOuter: {
+    width: 110, height: 110, borderRadius: 55,
+    borderWidth: 20, borderColor: "#2563EB",
+  },
+  donutArc: { width: 110, height: 110, borderRadius: 55, borderWidth: 20 },
+  donutHole: { width: 70, height: 70, borderRadius: 35, backgroundColor: colors.card },
+  donutLegend: { flex: 1, gap: 8 },
+  legendRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendLabel: { flex: 1, color: colors.textSecondary, fontSize: 13 },
+  legendPct: { color: colors.textPrimary, fontWeight: "700", fontSize: 13 },
+
+  // AI card
+  aiHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
+  aiIconWrap: {
+    width: 32, height: 32, borderRadius: 8,
+    backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center",
+  },
+  aiTitle: { flex: 1, fontWeight: "700", color: colors.textPrimary },
+  aibadge: {},
+  aiBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
+  aiBadgeText: { color: "#fff", fontWeight: "700", fontSize: 12 },
+  aiDesc: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
+  confRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6 },
+  confLabel: { color: colors.textSecondary, fontSize: 13 },
+  confTrack: { height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: "hidden" },
+  confFill: { height: "100%", backgroundColor: colors.accent, borderRadius: 4 },
+  scenarioRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
+  scenarioCard: {
+    flex: 1, backgroundColor: colors.background,
+    borderRadius: radius.md, padding: spacing.sm, gap: 2,
+  },
+  scenarioLabel: { color: colors.textSecondary, fontSize: 12 },
+  scenarioVal: { fontWeight: "700", fontSize: 15 },
+  scenarioSub: { color: colors.textSecondary, fontSize: 11 },
 });

@@ -1,33 +1,70 @@
-import { useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert, ScrollView, StyleSheet, Text,
+  TouchableOpacity, useWindowDimensions, View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LedgerEntry, WalletApi, WalletBalance } from "@/api/endpoints";
-import { Button, Card } from "@/components/ui";
+import { MiniChart } from "@/components/MiniChart";
 import { colors, radius, spacing } from "@/theme/colors";
 
-// Dompet — Design 08/09. Currency tabs, balance, convert, history.
+const FLAGS: Record<string, string> = { IDR: "🇮🇩", USD: "🇺🇸", SGD: "🇸🇬", EUR: "🇪🇺", MYR: "🇲🇾" };
+const SYMBOLS: Record<string, string> = { IDR: "Rp", USD: "$", SGD: "S$", EUR: "€", MYR: "RM" };
+const DAYS = ["S", "S", "R", "K", "J", "S", "M"];
+
+// Mock 7-day rate trends (IDR equivalent per 1 unit of currency).
+const TREND: Record<string, number[]> = {
+  USD: [15600, 15700, 15650, 15800, 15820, 15900, 15850],
+  SGD: [11900, 11950, 12000, 12020, 12080, 12100, 12050],
+  EUR: [17050, 17100, 17180, 17150, 17220, 17260, 17200],
+  MYR: [3400, 3410, 3420, 3430, 3445, 3460, 3450],
+  IDR: [1, 1, 1, 1, 1, 1, 1],
+};
+
+// Fallback display rates (updated by /wallets/rates when online).
+const FALLBACK_RATES: Record<string, number> = {
+  IDR: 1, USD: 15850, SGD: 12050, EUR: 17200, MYR: 3450,
+};
+
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(diff / 3_600_000);
+  if (h < 1) return `${Math.floor(diff / 60_000)}m lalu`;
+  if (h < 24) return `${h}j lalu`;
+  return `${Math.floor(h / 24)}h lalu`;
+}
+
 export default function WalletScreen() {
+  const { width } = useWindowDimensions();
+  const router = useRouter();
   const [wallets, setWallets] = useState<WalletBalance[]>([]);
   const [active, setActive] = useState("USD");
   const [history, setHistory] = useState<LedgerEntry[]>([]);
+  const [rates, setRates] = useState<Record<string, number>>(FALLBACK_RATES);
 
   const load = useCallback(() => {
     WalletApi.list().then((r) => setWallets(r.data)).catch(() => {});
     WalletApi.history(active).then((r) => setHistory(r.data)).catch(() => {});
+    WalletApi.rates().then((r) => setRates(r.data)).catch(() => {});
   }, [active]);
 
-  useFocusEffect(useCallback(() => load(), [load]));
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const current = wallets.find((w) => w.currency === active);
+  const balance = Number(current?.balance ?? 0);
+  const chartW = width - spacing.lg * 2;
 
-  async function convertToIdr() {
+  async function handleConvert() {
+    if (balance <= 0) return Alert.alert("Saldo kosong", "Tidak ada saldo untuk dikonversi.");
     try {
-      const amount = Number(current?.balance ?? 0);
-      if (amount <= 0) return Alert.alert("Saldo kosong", "Tidak ada saldo untuk dikonversi.");
-      const { data } = await WalletApi.convert(active, "IDR", amount);
-      Alert.alert("Konversi berhasil", `Diterima Rp ${Number(data.amount_out).toLocaleString("id-ID")}`);
+      const { data } = await WalletApi.convert(active, "IDR", balance);
+      Alert.alert(
+        "Konversi berhasil",
+        `+Rp ${Number(data.amount_out).toLocaleString("id-ID")}\nFee: Rp ${Number(data.fee).toLocaleString("id-ID")}`
+      );
       load();
     } catch (e: any) {
       Alert.alert("Gagal", e?.response?.data?.detail ?? "Konversi gagal.");
@@ -35,66 +72,171 @@ export default function WalletScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-        <Text style={styles.header}>Dompet</Text>
+    <SafeAreaView style={s.safe} edges={["top"]}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
+        {/* Header */}
+        <View style={s.header}>
+          <View style={{ width: 28 }} />
+          <Text style={s.headerTitle}>Dompet</Text>
+          <View style={{ width: 28 }} />
+        </View>
+
+        {/* Currency tabs */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.tabs}
+        >
           {wallets.map((w) => (
-            <Pressable
+            <TouchableOpacity
               key={w.currency}
               onPress={() => setActive(w.currency)}
-              style={[styles.tab, active === w.currency && styles.tabActive]}
+              style={[s.tab, active === w.currency && s.tabActive]}
             >
-              <Text style={[styles.tabText, active === w.currency && styles.tabTextActive]}>
+              <Text style={s.tabFlag}>{FLAGS[w.currency]}</Text>
+              <Text style={[s.tabText, active === w.currency && s.tabTextActive]}>
                 {w.currency}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           ))}
         </ScrollView>
 
-        <Card>
-          <Text style={styles.ccy}>{active}</Text>
-          <Text style={styles.balance}>
-            {Number(current?.balance ?? 0).toLocaleString("en-US")}
-          </Text>
-          {active !== "IDR" && (
-            <Button title={`Konversi ke IDR`} onPress={convertToIdr} style={{ marginTop: spacing.md }} />
-          )}
-        </Card>
-
-        <Text style={styles.section}>Riwayat</Text>
-        {history.length === 0 && <Text style={styles.empty}>Belum ada transaksi.</Text>}
-        {history.map((e) => (
-          <Card key={e.id} style={styles.histRow}>
-            <View>
-              <Text style={styles.histDesc}>{e.description ?? e.ref_type}</Text>
-              <Text style={styles.histDate}>{new Date(e.created_at).toLocaleDateString("id-ID")}</Text>
+        {/* Currency detail card */}
+        <View style={s.card}>
+          <View style={s.cardTop}>
+            <Text style={{ fontSize: 32 }}>{FLAGS[active]}</Text>
+            <View style={{ marginLeft: spacing.sm }}>
+              <Text style={s.cardCcy}>{active}</Text>
+              {active !== "IDR" && (
+                <Text style={s.cardRate}>
+                  1 {active} = Rp {(rates[active] ?? 0).toLocaleString("id-ID")}
+                </Text>
+              )}
             </View>
-            <Text style={[styles.histAmt, { color: e.direction === "CREDIT" ? colors.success : colors.danger }]}>
-              {e.direction === "CREDIT" ? "+" : "-"}
-              {Number(e.amount).toLocaleString("en-US")}
-            </Text>
-          </Card>
-        ))}
+          </View>
+
+          <View style={s.amountsRow}>
+            <View>
+              <Text style={s.amtLabel}>Tersedia</Text>
+              <Text style={s.amtValue}>
+                {SYMBOLS[active]}{balance.toLocaleString("en-US")}
+              </Text>
+            </View>
+            <View>
+              <Text style={s.amtLabel}>Pending</Text>
+              <Text style={[s.amtValue, { color: "#F59E0B" }]}>{SYMBOLS[active]}0</Text>
+            </View>
+          </View>
+
+          <View style={s.btnRow}>
+            {active !== "IDR" && (
+              <TouchableOpacity style={[s.actionBtn, { flex: 1 }]} onPress={handleConvert}>
+                <Ionicons name="swap-horizontal-outline" size={16} color="#fff" />
+                <Text style={s.actionBtnText}>Konversi</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[s.actionBtn, s.actionBtnAlt, { flex: 1 }]}
+              onPress={() => router.push("/(tabs)/insights")}
+            >
+              <Ionicons name="sparkles-outline" size={16} color="#fff" />
+              <Text style={s.actionBtnText}>AI Rekom</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Trend chart */}
+        {active !== "IDR" && (
+          <View style={[s.card, { marginTop: spacing.md }]}>
+            <Text style={s.sectionTitle}>Tren Kurs Minggu Ini</Text>
+            <MiniChart data={TREND[active] ?? []} color={colors.accent} width={chartW} height={80} />
+            <View style={s.dayLabels}>
+              {DAYS.map((d, i) => (
+                <Text key={i} style={s.dayLabel}>{d}</Text>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Riwayat */}
+        <View style={[s.card, { marginTop: spacing.md }]}>
+          <Text style={s.sectionTitle}>Riwayat</Text>
+          {history.length === 0 && (
+            <Text style={{ color: colors.textSecondary, marginTop: spacing.sm }}>Belum ada transaksi.</Text>
+          )}
+          {history.map((e, i) => (
+            <View
+              key={e.id}
+              style={[s.txRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}
+            >
+              <View style={[s.txDot, { backgroundColor: e.direction === "CREDIT" ? "#16A34A" : "#F97316" }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.txDesc}>{e.description ?? e.ref_type}</Text>
+                <Text style={s.txTime}>{timeAgo(e.created_at)}</Text>
+              </View>
+              <Text style={[s.txAmt, { color: e.direction === "CREDIT" ? "#16A34A" : colors.textPrimary }]}>
+                {e.direction === "CREDIT" ? "+" : "-"}{SYMBOLS[e.currency] ?? ""}{Number(e.amount).toLocaleString("en-US")}
+              </Text>
+            </View>
+          ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { fontSize: 22, fontWeight: "700", color: colors.textPrimary },
-  tab: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  header: {
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+  },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: colors.textPrimary },
+
+  tabs: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, gap: spacing.sm },
+  tab: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: spacing.md, paddingVertical: 8,
+    borderRadius: radius.md, backgroundColor: colors.card,
+    borderWidth: 1, borderColor: colors.border,
+  },
   tabActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  tabText: { color: colors.textSecondary, fontWeight: "600" },
+  tabFlag: { fontSize: 16 },
+  tabText: { color: colors.textSecondary, fontWeight: "600", fontSize: 13 },
   tabTextActive: { color: "#fff" },
-  ccy: { color: colors.textSecondary },
-  balance: { fontSize: 30, fontWeight: "800", color: colors.textPrimary, marginTop: spacing.xs },
-  section: { fontSize: 16, fontWeight: "700", color: colors.textPrimary, marginTop: spacing.sm },
-  empty: { color: colors.textSecondary },
-  histRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  histDesc: { color: colors.textPrimary, fontWeight: "600" },
-  histDate: { color: colors.textSecondary, fontSize: 12 },
-  histAmt: { fontWeight: "700" },
+
+  card: {
+    marginHorizontal: spacing.lg, backgroundColor: colors.card,
+    borderRadius: radius.lg, padding: spacing.md,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  cardTop: { flexDirection: "row", alignItems: "center", marginBottom: spacing.md },
+  cardCcy: { fontSize: 18, fontWeight: "700", color: colors.textPrimary },
+  cardRate: { color: colors.textSecondary, fontSize: 13 },
+
+  amountsRow: { flexDirection: "row", gap: spacing.xl, marginBottom: spacing.md },
+  amtLabel: { color: colors.textSecondary, fontSize: 12, marginBottom: 2 },
+  amtValue: { fontSize: 26, fontWeight: "800", color: colors.textPrimary },
+
+  btnRow: { flexDirection: "row", gap: spacing.sm },
+  actionBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, height: 46, borderRadius: radius.md, backgroundColor: colors.primary,
+  },
+  actionBtnAlt: { backgroundColor: "#1E3A6E" },
+  actionBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+
+  sectionTitle: { fontSize: 15, fontWeight: "700", color: colors.textPrimary, marginBottom: spacing.sm },
+  dayLabels: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
+  dayLabel: { color: colors.textSecondary, fontSize: 11, textAlign: "center" },
+
+  txRow: {
+    flexDirection: "row", alignItems: "center",
+    gap: spacing.md, paddingVertical: 12,
+  },
+  txDot: { width: 10, height: 10, borderRadius: 5 },
+  txDesc: { fontWeight: "600", color: colors.textPrimary, fontSize: 14 },
+  txTime: { color: colors.textSecondary, fontSize: 12, marginTop: 1 },
+  txAmt: { fontWeight: "700", fontSize: 15 },
 });
