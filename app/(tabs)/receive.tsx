@@ -8,8 +8,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { PaymentApi } from "@/api/endpoints";
+import { FraudResult, PaymentApi, RiskLevel } from "@/api/endpoints";
 import { colors, radius, spacing } from "@/theme/colors";
+
+const RISK_COLOR: Record<RiskLevel, string> = {
+  LOW: colors.success,
+  MEDIUM: colors.warning,
+  HIGH: colors.danger,
+};
 
 const CCYS = ["USD", "SGD", "EUR", "MYR"];
 const SYMBOLS: Record<string, string> = { USD: "$", SGD: "S$", EUR: "€", MYR: "RM" };
@@ -23,6 +29,8 @@ export default function Receive() {
   const [amount, setAmount] = useState("500");
   const [linkData, setLinkData] = useState<LinkData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [fraud, setFraud] = useState<FraudResult | null>(null);
+  const [paying, setPaying] = useState(false);
 
   const sym = SYMBOLS[currency] ?? "";
   const amt = Number(amount) || 0;
@@ -36,6 +44,7 @@ export default function Receive() {
   async function generate() {
     if (amt <= 0) return Alert.alert("Jumlah tidak valid", "Masukkan jumlah yang benar.");
     setLoading(true);
+    setFraud(null);
     try {
       const { data } = await PaymentApi.create(currency, amt);
       setLinkData({ code: data.code, url: data.url });
@@ -55,6 +64,28 @@ export default function Receive() {
   async function share() {
     if (!displayUrl) return;
     await Share.share({ message: `Bayar saya via NusaWallet: https://${displayUrl}` });
+  }
+
+  // Sandbox demo: simulate an incoming payment so the fraud engine's result is visible.
+  async function simulatePayment(scenario: "normal" | "suspicious") {
+    if (!linkData) return;
+    setPaying(true);
+    setFraud(null);
+    const payerName = scenario === "normal" ? "Andi Wijaya" : "";
+    const originCountry = scenario === "normal" ? "SG" : "KP";
+    try {
+      const { data } = await PaymentApi.pay(linkData.code, payerName, originCountry);
+      setFraud(data);
+    } catch (e: any) {
+      const detail = e?.response?.data?.detail;
+      if (detail && typeof detail === "object") {
+        setFraud(detail as FraudResult); // held for review (402 REVIEW_REQUIRED)
+      } else {
+        Alert.alert("Gagal", "Simulasi pembayaran gagal. Buat link baru lalu coba lagi.");
+      }
+    } finally {
+      setPaying(false);
+    }
   }
 
   return (
@@ -140,6 +171,58 @@ export default function Receive() {
               </View>
             </View>
           )}
+
+          {/* Fraud detection demo (sandbox) */}
+          {linkData && (
+            <View style={[s.card, { gap: spacing.sm }]}>
+              <Text style={s.label}>Uji Deteksi Fraud (demo sandbox)</Text>
+              <View style={s.btnRow}>
+                <TouchableOpacity
+                  style={[s.actionBtn, s.actionBtnOutline, { flex: 1 }]}
+                  onPress={() => simulatePayment("normal")}
+                  disabled={paying}
+                >
+                  <Text style={[s.actionBtnText, { color: colors.primary }]}>Pembayaran Normal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.actionBtn, s.actionBtnOutline, { flex: 1 }]}
+                  onPress={() => simulatePayment("suspicious")}
+                  disabled={paying}
+                >
+                  <Text style={[s.actionBtnText, { color: colors.danger }]}>Mencurigakan</Text>
+                </TouchableOpacity>
+              </View>
+
+              {fraud && (
+                <View style={s.fraudResult}>
+                  <View style={s.fraudHeader}>
+                    <Ionicons
+                      name={fraud.status === "REVIEW_REQUIRED" ? "warning" : "shield-checkmark"}
+                      size={18}
+                      color={RISK_COLOR[fraud.risk_level ?? "LOW"]}
+                    />
+                    <Text style={s.fraudTitle}>
+                      {fraud.status === "REVIEW_REQUIRED"
+                        ? "Ditahan untuk ditinjau"
+                        : "Pembayaran diterima"}
+                    </Text>
+                    <View style={[s.riskBadge, { backgroundColor: RISK_COLOR[fraud.risk_level ?? "LOW"] }]}>
+                      <Text style={s.riskBadgeText}>Risiko {fraud.risk_level ?? "LOW"}</Text>
+                    </View>
+                  </View>
+                  {(fraud.factors ?? []).slice(0, 4).map((f, i) => (
+                    <View key={i} style={s.factorRow}>
+                      <View style={s.factorDot} />
+                      <Text style={s.factorText}>{f}</Text>
+                    </View>
+                  ))}
+                  <Text style={s.fraudNote}>
+                    Skor risiko dihitung server-side. Ini simulasi sandbox — bukan transaksi nyata.
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -202,4 +285,17 @@ const s = StyleSheet.create({
   },
   actionBtnOutline: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border },
   actionBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+
+  fraudResult: {
+    backgroundColor: colors.background, borderRadius: radius.md,
+    padding: spacing.md, gap: spacing.sm,
+  },
+  fraudHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  fraudTitle: { flex: 1, fontWeight: "700", color: colors.textPrimary, fontSize: 14 },
+  riskBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
+  riskBadgeText: { color: "#fff", fontWeight: "700", fontSize: 11 },
+  factorRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  factorDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.danger, marginTop: 6 },
+  factorText: { flex: 1, color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
+  fraudNote: { color: colors.textSecondary, fontSize: 11, fontStyle: "italic", marginTop: 2 },
 });

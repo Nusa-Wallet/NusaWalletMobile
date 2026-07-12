@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { FxAdvisory, InsightsApi } from "@/api/endpoints";
+import { FxAdvisory, InsightsApi, RiskPreference, WalletApi } from "@/api/endpoints";
 import { colors, radius, spacing } from "@/theme/colors";
 
 // Mock monthly income data (Juta IDR)
@@ -18,7 +18,6 @@ const MONTHLY = [
 ];
 const BAR_MAX = 80;
 
-// Currency usage distribution
 const CCY_USAGE = [
   { label: "USD", pct: 55, color: "#2563EB" },
   { label: "EUR", pct: 20, color: "#7C3AED" },
@@ -27,29 +26,79 @@ const CCY_USAGE = [
 ];
 
 const ACTION_META: Record<string, { text: string; bg: string }> = {
-  CONVERT_NOW: { text: "Konversi", bg: "#0E2148" },
-  WAIT: { text: "Tunggu", bg: "#D97706" },
+  CONVERT_NOW: { text: "Konversi Sekarang", bg: colors.primary },
+  HOLD_TEMPORARILY: { text: "Tahan Sementara", bg: colors.warning },
+  SPLIT_CONVERSION: { text: "Konversi Bertahap", bg: colors.accent },
+  WAIT: { text: "Tunggu", bg: colors.warning },
   HOLD: { text: "Tahan", bg: "#64748B" },
 };
+
+const RISK_OPTIONS: { key: RiskPreference; label: string }[] = [
+  { key: "CONSERVATIVE", label: "Hati-hati" },
+  { key: "MODERATE", label: "Moderat" },
+  { key: "AGGRESSIVE", label: "Agresif" },
+];
+
+const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
 
 export default function Insights() {
   const [adv, setAdv] = useState<FxAdvisory | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [risk, setRisk] = useState<RiskPreference>("MODERATE");
+  const [usdBalance, setUsdBalance] = useState(1000);
+  const [converting, setConverting] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      InsightsApi.fxAdvisory("USD", "IDR")
-        .then((r) => { setAdv(r.data); setError(null); })
-        .catch(() => setError("AI service offline (port 8001)."));
-    }, [])
-  );
+  const fetchAll = useCallback(async (rp: RiskPreference) => {
+    let amount = 1000;
+    try {
+      const { data } = await WalletApi.list();
+      amount = Number(data.find((w) => w.currency === "USD")?.balance ?? 0) || 1000;
+      setUsdBalance(amount);
+    } catch {
+      /* keep default amount */
+    }
+    try {
+      const { data } = await InsightsApi.fxAdvisory("USD", "IDR", {
+        amount,
+        horizon_days: 7,
+        risk_preference: rp,
+      });
+      setAdv(data);
+      setError(null);
+    } catch {
+      setError("Layanan AI tidak tersedia (port 8001).");
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => { fetchAll(risk); }, [fetchAll, risk]));
+
+  async function convertSplit() {
+    const pct = adv?.recommended_convert_percentage ?? 100;
+    if (usdBalance <= 0) {
+      Alert.alert("Saldo kosong", "Tidak ada saldo USD untuk dikonversi.");
+      return;
+    }
+    setConverting(true);
+    try {
+      const { data } = await WalletApi.convert("USD", "IDR", usdBalance, pct);
+      Alert.alert(
+        "Konversi berhasil",
+        `Dikonversi ${data.convert_percentage}% • +${rupiah(Number(data.amount_out))}`,
+      );
+    } catch {
+      Alert.alert("Gagal", "Konversi tidak dapat diproses.");
+    } finally {
+      setConverting(false);
+    }
+  }
 
   const action = adv ? ACTION_META[adv.action] : null;
+  const gain = adv?.estimated_gain_loss ?? null;
+  const pct = adv?.recommended_convert_percentage ?? null;
 
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView contentContainerStyle={s.scroll}>
-
         <Text style={s.header}>Insights</Text>
 
         {/* ── Summary cards ── */}
@@ -85,14 +134,11 @@ export default function Insights() {
         <View style={s.card}>
           <Text style={s.cardTitle}>Penggunaan Mata Uang</Text>
           <View style={s.donutRow}>
-            {/* Simplified ring chart */}
             <View style={s.donutWrap}>
               <View style={s.donutOuter}>
                 <View style={s.donutInner} />
-                {/* Colored arcs approximated with border trick */}
                 <View style={[s.donutArc, { borderColor: "#2563EB" }]} />
               </View>
-              {/* Colored overlay segments */}
               <View style={[StyleSheet.absoluteFill, s.donutOuter, { borderColor: "#7C3AED", opacity: 0.8,
                 transform: [{ rotate: "198deg" }] }]} />
               <View style={[StyleSheet.absoluteFill, s.donutOuter, { borderColor: "#16A34A", opacity: 0.8,
@@ -129,10 +175,25 @@ export default function Insights() {
               <View style={s.aiIconWrap}>
                 <Ionicons name="globe-outline" size={18} color={colors.accent} />
               </View>
-              <Text style={s.aiTitle}>Rekomendasi AI</Text>
+              <Text style={s.aiTitle}>Rekomendasi AI · {adv.pair}</Text>
               <View style={[s.aiBadge, { backgroundColor: action.bg }]}>
                 <Text style={s.aiBadgeText}>{action.text}</Text>
               </View>
+            </View>
+
+            {/* Risk preference selector */}
+            <View style={s.riskRow}>
+              {RISK_OPTIONS.map((o) => (
+                <TouchableOpacity
+                  key={o.key}
+                  onPress={() => setRisk(o.key)}
+                  style={[s.riskChip, risk === o.key && s.riskChipActive]}
+                >
+                  <Text style={[s.riskChipText, risk === o.key && s.riskChipTextActive]}>
+                    {o.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
 
             <Text style={s.aiDesc}>{adv.rationale}</Text>
@@ -140,7 +201,7 @@ export default function Insights() {
             {/* Confidence bar */}
             <View style={{ marginTop: spacing.md }}>
               <View style={s.confRow}>
-                <Text style={s.confLabel}>Confidence</Text>
+                <Text style={s.confLabel}>Keyakinan Model</Text>
                 <Text style={[s.confLabel, { color: colors.accent, fontWeight: "700" }]}>
                   {(adv.confidence * 100).toFixed(0)}%
                 </Text>
@@ -150,21 +211,55 @@ export default function Insights() {
               </View>
             </View>
 
-            {/* Scenarios */}
-            <View style={s.scenarioRow}>
-              <View style={s.scenarioCard}>
-                <Text style={s.scenarioLabel}>Terbaik</Text>
-                <Text style={[s.scenarioVal, { color: "#16A34A" }]}>
-                  +Rp {Math.round((adv.scenario_best - adv.current_rate) * 1000).toLocaleString("id-ID")}
+            {/* Forecast range + split + gain, shown when the decision engine responded */}
+            {adv.forecast_lower != null && adv.forecast_upper != null && (
+              <View style={s.metricRow}>
+                <Ionicons name="analytics-outline" size={15} color={colors.textSecondary} />
+                <Text style={s.metricLabel}>Rentang perkiraan (7 hari)</Text>
+                <Text style={s.metricVal}>
+                  {rupiah(adv.forecast_lower)} – {rupiah(adv.forecast_upper)}
                 </Text>
-                <Text style={s.scenarioSub}>Rp {adv.scenario_best.toLocaleString("id-ID")}</Text>
               </View>
-              <View style={s.scenarioCard}>
-                <Text style={s.scenarioLabel}>Moderat</Text>
-                <Text style={[s.scenarioVal, { color: colors.textSecondary }]}>– –</Text>
-                <Text style={s.scenarioSub}>Rp {adv.current_rate.toLocaleString("id-ID")}</Text>
+            )}
+            {gain != null && (
+              <View style={s.metricRow}>
+                <Ionicons name="cash-outline" size={15} color={colors.textSecondary} />
+                <Text style={s.metricLabel}>Estimasi selisih nilai</Text>
+                <Text style={[s.metricVal, { color: gain >= 0 ? colors.success : colors.danger }]}>
+                  {gain >= 0 ? "+" : "-"}{rupiah(Math.abs(gain))}
+                </Text>
               </View>
-            </View>
+            )}
+            {pct != null && (
+              <View style={s.metricRow}>
+                <Ionicons name="pie-chart-outline" size={15} color={colors.textSecondary} />
+                <Text style={s.metricLabel}>Konversi disarankan sekarang</Text>
+                <Text style={[s.metricVal, { color: colors.accent }]}>{pct}%</Text>
+              </View>
+            )}
+
+            {/* Reasons */}
+            {adv.reasons?.slice(0, 3).map((r, i) => (
+              <View key={i} style={s.reasonRow}>
+                <View style={s.reasonDot} />
+                <Text style={s.reasonText}>{r}</Text>
+              </View>
+            ))}
+
+            {/* Convert the recommended split */}
+            {pct != null && usdBalance > 0 && (
+              <TouchableOpacity style={s.convertBtn} onPress={convertSplit} disabled={converting}>
+                <Ionicons name="swap-horizontal-outline" size={16} color="#fff" />
+                <Text style={s.convertBtnText}>
+                  {converting ? "Memproses..." : `Konversi ${pct}% USD sekarang`}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <Text style={s.disclaimer}>
+              Estimasi berbasis data historis & skenario — bukan jaminan keuntungan. Kurs
+              dapat berubah sewaktu-waktu.
+            </Text>
           </View>
         )}
       </ScrollView>
@@ -177,7 +272,6 @@ const s = StyleSheet.create({
   scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: 40 },
   header: { fontSize: 22, fontWeight: "700", color: colors.textPrimary, marginBottom: 4 },
 
-  // Summary
   summaryRow: { flexDirection: "row", gap: spacing.sm },
   summaryCard: {
     flex: 1, backgroundColor: colors.card, borderRadius: radius.lg,
@@ -186,27 +280,25 @@ const s = StyleSheet.create({
   summaryLabel: { color: colors.textSecondary, fontSize: 12, marginTop: 4 },
   summaryVal: { color: colors.textPrimary, fontWeight: "800", fontSize: 18 },
 
-  // Card
   card: {
     backgroundColor: colors.card, borderRadius: radius.lg,
     padding: spacing.md, borderWidth: 1, borderColor: colors.border,
   },
   cardTitle: { fontWeight: "700", color: colors.textPrimary, marginBottom: spacing.md },
 
-  // Bar chart
   barChart: { flexDirection: "row", gap: 8, height: 120, alignItems: "flex-end" },
   barCol: { flex: 1, alignItems: "center", gap: 4 },
   barTrack: { flex: 1, width: "100%", justifyContent: "flex-end" },
   bar: { width: "100%", backgroundColor: colors.accent, borderRadius: 4, minHeight: 8 },
   barLabel: { color: colors.textSecondary, fontSize: 11 },
 
-  // Donut
   donutRow: { flexDirection: "row", alignItems: "center", gap: spacing.lg },
   donutWrap: { width: 110, height: 110 },
   donutOuter: {
     width: 110, height: 110, borderRadius: 55,
     borderWidth: 20, borderColor: "#2563EB",
   },
+  donutInner: { ...StyleSheet.absoluteFillObject, borderRadius: 55 },
   donutArc: { width: 110, height: 110, borderRadius: 55, borderWidth: 20 },
   donutHole: { width: 70, height: 70, borderRadius: 35, backgroundColor: colors.card },
   donutLegend: { flex: 1, gap: 8 },
@@ -215,27 +307,50 @@ const s = StyleSheet.create({
   legendLabel: { flex: 1, color: colors.textSecondary, fontSize: 13 },
   legendPct: { color: colors.textPrimary, fontWeight: "700", fontSize: 13 },
 
-  // AI card
   aiHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
   aiIconWrap: {
     width: 32, height: 32, borderRadius: 8,
     backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center",
   },
-  aiTitle: { flex: 1, fontWeight: "700", color: colors.textPrimary },
-  aibadge: {},
+  aiTitle: { flex: 1, fontWeight: "700", color: colors.textPrimary, fontSize: 13 },
   aiBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
   aiBadgeText: { color: "#fff", fontWeight: "700", fontSize: 12 },
   aiDesc: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
+
+  riskRow: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.md },
+  riskChip: {
+    flex: 1, height: 34, borderRadius: radius.md, alignItems: "center", justifyContent: "center",
+    backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border,
+  },
+  riskChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  riskChipText: { color: colors.textSecondary, fontWeight: "600", fontSize: 12 },
+  riskChipTextActive: { color: "#fff" },
+
   confRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6 },
   confLabel: { color: colors.textSecondary, fontSize: 13 },
   confTrack: { height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: "hidden" },
   confFill: { height: "100%", backgroundColor: colors.accent, borderRadius: 4 },
-  scenarioRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
-  scenarioCard: {
-    flex: 1, backgroundColor: colors.background,
-    borderRadius: radius.md, padding: spacing.sm, gap: 2,
+
+  metricRow: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    marginTop: spacing.md, paddingTop: spacing.sm,
+    borderTopWidth: 1, borderTopColor: colors.border,
   },
-  scenarioLabel: { color: colors.textSecondary, fontSize: 12 },
-  scenarioVal: { fontWeight: "700", fontSize: 15 },
-  scenarioSub: { color: colors.textSecondary, fontSize: 11 },
+  metricLabel: { flex: 1, color: colors.textSecondary, fontSize: 13 },
+  metricVal: { fontWeight: "700", fontSize: 13, color: colors.textPrimary },
+
+  reasonRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginTop: spacing.sm },
+  reasonDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.accent, marginTop: 7 },
+  reasonText: { flex: 1, color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
+
+  convertBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    height: 46, borderRadius: radius.md, backgroundColor: colors.primary, marginTop: spacing.md,
+  },
+  convertBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+
+  disclaimer: {
+    color: colors.textSecondary, fontSize: 11, lineHeight: 16,
+    marginTop: spacing.md, fontStyle: "italic",
+  },
 });
