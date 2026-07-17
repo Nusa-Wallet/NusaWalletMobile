@@ -56,11 +56,18 @@ export type LoginCredentials =
   | { email: string; phone?: never; password: string }
   | { email?: never; phone: string; password: string };
 
+export type RegisterCredentials = {
+  email: string;
+  full_name: string;
+  password: string;
+  phone: string;
+};
+
 export const AuthApi = {
   login: (credentials: LoginCredentials) =>
     api.post<{ access_token: string }>("/auth/login", credentials),
-  register: (email: string, full_name: string, password: string) =>
-    api.post<{ access_token: string }>("/auth/register", { email, full_name, password }),
+  register: (credentials: RegisterCredentials) =>
+    api.post<{ access_token: string }>("/auth/register", credentials),
   me: () => api.get("/auth/me"),
 };
 

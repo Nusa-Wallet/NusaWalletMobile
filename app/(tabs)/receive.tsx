@@ -28,6 +28,8 @@ export default function Receive() {
   const [currency, setCurrency] = useState("USD");
   const [amount, setAmount] = useState("500");
   const [linkData, setLinkData] = useState<LinkData | null>(null);
+  const [linkConsumed, setLinkConsumed] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [fraud, setFraud] = useState<FraudResult | null>(null);
   const [paying, setPaying] = useState(false);
@@ -45,9 +47,12 @@ export default function Receive() {
     if (amt <= 0) return Alert.alert("Jumlah tidak valid", "Masukkan jumlah yang benar.");
     setLoading(true);
     setFraud(null);
+    setNotice(null);
     try {
       const { data } = await PaymentApi.create(currency, amt);
       setLinkData({ code: data.code, url: data.url });
+      setLinkConsumed(false);
+      setNotice("Link pembayaran berhasil dibuat dan siap dibagikan.");
     } catch (e: any) {
       Alert.alert("Gagal", e?.response?.data?.detail ?? "Tidak dapat membuat link.");
     } finally {
@@ -71,15 +76,30 @@ export default function Receive() {
     if (!linkData) return;
     setPaying(true);
     setFraud(null);
+    setNotice(null);
     const payerName = scenario === "normal" ? "Andi Wijaya" : "";
     const originCountry = scenario === "normal" ? "SG" : "KP";
     try {
-      const { data } = await PaymentApi.pay(linkData.code, payerName, originCountry);
+      let activeLink = linkData;
+      if (linkConsumed) {
+        const { data: freshLink } = await PaymentApi.create(
+          currency,
+          amt,
+          `Sandbox AI: ${scenario}`,
+        );
+        activeLink = { code: freshLink.code, url: freshLink.url };
+        setLinkData(activeLink);
+        setNotice("Link sandbox baru dibuat otomatis untuk skenario berikutnya.");
+      }
+
+      const { data } = await PaymentApi.pay(activeLink.code, payerName, originCountry);
       setFraud(data);
+      setLinkConsumed(true);
     } catch (e: any) {
       const detail = e?.response?.data?.detail;
       if (detail && typeof detail === "object") {
         setFraud(detail as FraudResult); // held for review (402 REVIEW_REQUIRED)
+        setLinkConsumed(true);
       } else {
         Alert.alert("Gagal", "Simulasi pembayaran gagal. Buat link baru lalu coba lagi.");
       }
@@ -107,7 +127,12 @@ export default function Receive() {
               {CCYS.map((c) => (
                 <TouchableOpacity
                   key={c}
-                  onPress={() => { setCurrency(c); setLinkData(null); }}
+                  onPress={() => {
+                    setCurrency(c);
+                    setLinkData(null);
+                    setLinkConsumed(false);
+                    setNotice(null);
+                  }}
                   style={[s.chip, currency === c && s.chipActive]}
                 >
                   <Text style={[s.chipText, currency === c && s.chipTextActive]}>{c}</Text>
@@ -119,7 +144,12 @@ export default function Receive() {
             <TextInput
               style={s.amtInput}
               value={amount}
-              onChangeText={(v) => { setAmount(v); setLinkData(null); }}
+              onChangeText={(v) => {
+                setAmount(v);
+                setLinkData(null);
+                setLinkConsumed(false);
+                setNotice(null);
+              }}
               keyboardType="decimal-pad"
               placeholder="0"
               placeholderTextColor={colors.textSecondary}
@@ -151,6 +181,13 @@ export default function Receive() {
             </Text>
           </TouchableOpacity>
 
+          {notice && (
+            <View style={s.successNotice} accessibilityRole="alert">
+              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+              <Text style={s.successNoticeText}>{notice}</Text>
+            </View>
+          )}
+
           {/* Link result card */}
           {linkData && displayUrl && (
             <View style={[s.card, { gap: spacing.sm }]}>
@@ -176,6 +213,9 @@ export default function Receive() {
           {linkData && (
             <View style={[s.card, { gap: spacing.sm }]}>
               <Text style={s.label}>Uji Deteksi Fraud (demo sandbox)</Text>
+              <Text style={s.sandboxHint}>
+                Setiap skenario memakai link sekali pakai. Link baru dibuat otomatis saat diperlukan.
+              </Text>
               <View style={s.btnRow}>
                 <TouchableOpacity
                   style={[s.actionBtn, s.actionBtnOutline, { flex: 1 }]}
@@ -271,6 +311,12 @@ const s = StyleSheet.create({
     borderRadius: radius.md, alignItems: "center", justifyContent: "center",
   },
   btnPrimaryText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  successNotice: {
+    flexDirection: "row", alignItems: "center", gap: spacing.sm,
+    backgroundColor: "#F0FDF4", borderWidth: 1, borderColor: "#BBF7D0",
+    borderRadius: radius.md, padding: spacing.md,
+  },
+  successNoticeText: { flex: 1, color: "#166534", fontSize: 13, lineHeight: 18 },
   linkBox: {
     flexDirection: "row", alignItems: "center", gap: 8,
     backgroundColor: colors.background, borderRadius: radius.sm,
@@ -290,6 +336,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.background, borderRadius: radius.md,
     padding: spacing.md, gap: spacing.sm,
   },
+  sandboxHint: { color: colors.textSecondary, fontSize: 12, lineHeight: 17 },
   fraudHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   fraudTitle: { flex: 1, fontWeight: "700", color: colors.textPrimary, fontSize: 14 },
   riskBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },

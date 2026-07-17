@@ -34,6 +34,7 @@ app/
   index.tsx            auth gate -> tabs, returning-user login, or onboarding
   onboarding.tsx       Design 01-04
   (auth)/login.tsx     Design 05/06
+  (auth)/register.tsx  Registrasi tervalidasi -> kembali ke login
   (tabs)/
     _layout.tsx        bottom nav: Beranda/Dompet/Terima/Insights/Profil
     index.tsx          Beranda            (Design 07)

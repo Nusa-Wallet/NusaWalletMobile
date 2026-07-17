@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 import { TOKEN_KEY } from "@/api/client";
-import { AuthApi, LoginCredentials } from "@/api/endpoints";
+import { AuthApi, LoginCredentials, RegisterCredentials } from "@/api/endpoints";
 
 export type LoginMethod = "email" | "phone";
 
@@ -14,7 +14,7 @@ type AuthState = {
   hasOnboarded: boolean;
   loading: boolean;
   login: (identifier: string, password: string, method?: LoginMethod) => Promise<void>;
-  register: (email: string, name: string, password: string) => Promise<void>;
+  register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -65,9 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await persist(data.access_token);
   }
 
-  async function register(email: string, name: string, password: string) {
-    const { data } = await AuthApi.register(email, name, password);
-    await persist(data.access_token);
+  async function register(credentials: RegisterCredentials) {
+    await AuthApi.register(credentials);
   }
 
   async function logout() {

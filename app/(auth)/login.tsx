@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRef, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
   Animated, KeyboardAvoidingView, Platform,
   ScrollView, StyleSheet, Text, TextInput,
@@ -14,15 +15,31 @@ type Mode = "email" | "phone";
 
 export default function Login() {
   const { login } = useAuth();
+  const { registered, email: registeredEmail } = useLocalSearchParams<{
+    registered?: string;
+    email?: string;
+  }>();
   const [mode, setMode] = useState<Mode>("email");
-  const [email, setEmail] = useState("demo@nusawallet.id");
+  const [email, setEmail] = useState(registeredEmail ?? "demo@nusawallet.id");
   const [phone, setPhone] = useState("081234567890");
-  const [password, setPassword] = useState("password123");
+  const [password, setPassword] = useState(registered === "success" ? "" : "password123");
   const [remember, setRemember] = useState(true);
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(
+    registered === "success" ? "Akun berhasil dibuat. Silakan masuk dengan akun baru Anda." : null,
+  );
   const credentialShake = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (registered === "success") {
+      setSuccess("Akun berhasil dibuat. Silakan masuk dengan akun baru Anda.");
+      setMode("email");
+      setPassword("");
+      if (registeredEmail) setEmail(registeredEmail);
+    }
+  }, [registered, registeredEmail]);
 
   function rejectLogin(message: string) {
     setError(message);
@@ -39,6 +56,7 @@ export default function Login() {
   async function onSubmit() {
     setLoading(true);
     setError(null);
+    setSuccess(null);
     try {
       const identifier = mode === "email" ? email.trim() : phone.trim();
       if (!identifier) {
@@ -94,6 +112,16 @@ export default function Login() {
 
             <Text style={s.title}>Selamat Datang</Text>
             <Text style={s.subtitle}>Masuk ke akun NusaWallet Anda</Text>
+
+            {success && (
+              <View style={s.successBox} accessibilityRole="alert">
+                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                <View style={s.successContent}>
+                  <Text style={s.successTitle}>Registrasi berhasil</Text>
+                  <Text style={s.successText}>{success}</Text>
+                </View>
+              </View>
+            )}
 
             {error && (
               <View style={s.errorBox} accessibilityRole="alert">
@@ -152,7 +180,7 @@ export default function Login() {
                     setError(null);
                   }}
                   secureTextEntry={!showPass}
-                  placeholder="password123"
+                  placeholder="Masukkan password"
                   placeholderTextColor={colors.textSecondary}
                 />
                 <TouchableOpacity onPress={() => setShowPass(!showPass)} style={{ paddingRight: spacing.md }}>
@@ -199,6 +227,23 @@ export default function Login() {
               </Text>
             </TouchableOpacity>
 
+            {/* Registration CTA */}
+            <View style={s.registerSection}>
+              <Text style={s.registerPrompt}>Belum punya akun NusaWallet?</Text>
+              <TouchableOpacity
+                style={s.btnRegister}
+                accessibilityRole="button"
+                accessibilityLabel="Daftar akun baru"
+                onPress={() => {
+                  setSuccess(null);
+                  router.push("/(auth)/register");
+                }}
+              >
+                <Ionicons name="person-add-outline" size={18} color={colors.accent} />
+                <Text style={s.registerLink}>Daftar Akun Baru</Text>
+              </TouchableOpacity>
+            </View>
+
             {/* Security note */}
             <View style={s.securityRow}>
               <Ionicons name="lock-closed-outline" size={13} color={colors.textSecondary} />
@@ -236,6 +281,14 @@ const s = StyleSheet.create({
   errorContent: { flex: 1 },
   errorTitle: { color: colors.danger, fontSize: 14, fontWeight: "700" },
   errorText: { color: colors.danger, fontSize: 13, lineHeight: 18, marginTop: 2 },
+  successBox: {
+    flexDirection: "row", alignItems: "flex-start", gap: spacing.sm,
+    backgroundColor: "#F0FDF4", borderWidth: 1, borderColor: "#BBF7D0",
+    borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.md,
+  },
+  successContent: { flex: 1 },
+  successTitle: { color: colors.success, fontSize: 14, fontWeight: "700" },
+  successText: { color: "#166534", fontSize: 13, lineHeight: 18, marginTop: 2 },
   inputWrap: {
     flexDirection: "row", alignItems: "center",
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
@@ -272,6 +325,14 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   btnOutlineText: { color: colors.textPrimary, fontSize: 15, fontWeight: "600" },
+  registerSection: { alignItems: "center", gap: spacing.sm, marginTop: spacing.lg },
+  registerPrompt: { color: colors.textSecondary, fontSize: 13 },
+  btnRegister: {
+    width: "100%", height: 48, borderRadius: radius.md,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm,
+    borderWidth: 1, borderColor: "#BFDBFE", backgroundColor: "#EFF6FF",
+  },
+  registerLink: { color: colors.accent, fontSize: 14, fontWeight: "700" },
   securityRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: spacing.lg },
   securityText: { color: colors.textSecondary, fontSize: 12 },
 });
