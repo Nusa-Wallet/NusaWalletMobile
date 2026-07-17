@@ -23,14 +23,15 @@ EXPO_PUBLIC_API_URL=http://192.168.x.x:8000
 
 Make sure [NusaWalletBackend](../NusaWalletBackend) (port 8000) and
 [NusaWalletAI](../NusaWalletAI) (port 8001) are running, and the backend is seeded
-(`python -m app.seed`). Demo login is prefilled: `demo@nusawallet.id` / `password123`.
+(`python -m app.seed`). Demo login uses password `password123` with either email
+`demo@nusawallet.id` or phone `081234567890`.
 
 ## Structure (file-based routing)
 
 ```
 app/
   _layout.tsx          root stack + AuthProvider
-  index.tsx            auth gate -> tabs or onboarding
+  index.tsx            auth gate -> tabs, returning-user login, or onboarding
   onboarding.tsx       Design 01-04
   (auth)/login.tsx     Design 05/06
   (tabs)/
@@ -42,7 +43,11 @@ app/
     profile.tsx        Profil             (Design 13)
 src/
   api/        axios client + typed endpoints
-  store/      auth context (token in AsyncStorage)
+  store/      auth context (token + onboarding state in AsyncStorage)
   components/ Button, Card, Title
   theme/      colors & spacing from the mockups
 ```
+
+After the first successful authentication, the onboarding completion flag remains
+stored when the user logs out. Returning logged-out users therefore open the login
+screen directly instead of repeating onboarding.

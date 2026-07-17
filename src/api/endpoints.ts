@@ -52,9 +52,13 @@ export type FraudResult = {
   factors?: string[];
 };
 
+export type LoginCredentials =
+  | { email: string; phone?: never; password: string }
+  | { email?: never; phone: string; password: string };
+
 export const AuthApi = {
-  login: (email: string, password: string) =>
-    api.post<{ access_token: string }>("/auth/login", { email, password }),
+  login: (credentials: LoginCredentials) =>
+    api.post<{ access_token: string }>("/auth/login", credentials),
   register: (email: string, full_name: string, password: string) =>
     api.post<{ access_token: string }>("/auth/register", { email, full_name, password }),
   me: () => api.get("/auth/me"),
