@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
 import { colors } from "@/theme/colors";
 
@@ -19,8 +19,12 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: false,  // custom label in tabBarIcon
+        tabBarShowLabel: true,
         tabBarStyle: s.tabBar,
+        tabBarItemStyle: s.tabItem,
+        tabBarLabelStyle: s.label,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textSecondary,
       }}
     >
       {TABS.map(({ name, label, icon, iconOut }) => (
@@ -35,9 +39,9 @@ export default function TabsLayout() {
                   size={22}
                   color={focused ? colors.accent : colors.textSecondary}
                 />
-                <Text style={[s.label, focused && s.labelActive]}>{label}</Text>
               </View>
             ),
+            tabBarLabel: label,
           }}
         />
       ))}
@@ -59,6 +63,10 @@ const s = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
   },
+  tabItem: {
+    minWidth: 62,
+    paddingHorizontal: 0,
+  },
   tab: {
     alignItems: "center",
     justifyContent: "center",
@@ -72,12 +80,8 @@ const s = StyleSheet.create({
     // subtle highlight on active tab
   },
   label: {
-    fontSize: 10,
-    color: colors.textSecondary,
-    fontWeight: "500",
-  },
-  labelActive: {
-    color: colors.accent,
+    fontSize: 11,
     fontWeight: "700",
+    marginTop: 2,
   },
 });

@@ -6,9 +6,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { InsightsApi, LedgerEntry, WalletApi, WalletBalance } from "@/api/endpoints";
 import { colors, radius, spacing } from "@/theme/colors";
+import { formatMoney, formatRate, tidyDescription } from "@/utils/format";
 
 const FLAGS: Record<string, string> = { IDR: "🇮🇩", USD: "🇺🇸", SGD: "🇸🇬", EUR: "🇪🇺", MYR: "🇲🇾" };
-const SYMBOLS: Record<string, string> = { IDR: "Rp", USD: "$", SGD: "S$", EUR: "€", MYR: "RM" };
 const QUICK = [
   { icon: "download-outline", label: "Terima", bg: "#2563EB", tab: "receive" },
   { icon: "swap-horizontal-outline", label: "Konversi", bg: "#16A34A", tab: "wallet" },
@@ -69,7 +69,7 @@ export default function Home() {
           </View>
 
           <Text style={s.saldoLabel}>Total Saldo Ekuivalen</Text>
-          <Text style={s.saldoValue}>Rp {Math.round(totalIdr || idrBalance).toLocaleString("id-ID")}</Text>
+          <Text style={s.saldoValue}>{formatMoney(totalIdr || idrBalance, "IDR")}</Text>
 
           <View style={s.growthBadge}>
             <Ionicons name="sync-outline" size={12} color="#16A34A" />
@@ -138,11 +138,11 @@ export default function Home() {
                     <Text style={s.flagEmoji}>{FLAGS[w.currency]}</Text>
                     <Text style={s.walletCcy}>{w.currency}</Text>
                     <View style={s.chgPill}>
-                      <Text style={s.chgText}>Rp {Math.round(rate).toLocaleString("id-ID")}</Text>
+                      <Text style={s.chgText}>Rp {formatRate(rate)}</Text>
                     </View>
                   </View>
                   <Text style={s.walletBal}>
-                    {SYMBOLS[w.currency]}{Number(w.balance).toLocaleString("en-US")}
+                    {formatMoney(Number(w.balance), w.currency, true)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -184,11 +184,11 @@ export default function Home() {
               <View key={e.id} style={[s.txRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}>
                 <View style={[s.txDot, { backgroundColor: e.direction === "CREDIT" ? "#16A34A" : "#F97316" }]} />
                 <View style={{ flex: 1 }}>
-                  <Text style={s.txDesc}>{e.description ?? e.ref_type}</Text>
+                  <Text style={s.txDesc} numberOfLines={1}>{tidyDescription(e.description ?? e.ref_type)}</Text>
                   <Text style={s.txTime}>{timeAgo(e.created_at)}</Text>
                 </View>
                 <Text style={[s.txAmt, { color: e.direction === "CREDIT" ? "#16A34A" : colors.textPrimary }]}>
-                  {e.direction === "CREDIT" ? "+" : "-"}{SYMBOLS[e.currency] ?? ""}{Number(e.amount).toLocaleString("en-US")}
+                  {e.direction === "CREDIT" ? "+" : "-"}{formatMoney(Number(e.amount), e.currency, true)}
                 </Text>
               </View>
             ))}
@@ -260,15 +260,15 @@ const s = StyleSheet.create({
 
   walletCard: {
     backgroundColor: colors.card, borderRadius: radius.lg,
-    padding: spacing.md, width: 148,
+    padding: spacing.md, width: 156,
     borderWidth: 1, borderColor: colors.border,
   },
-  walletCardTop: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: spacing.xs },
+  walletCardTop: { gap: 6, marginBottom: spacing.xs },
   flagEmoji: { fontSize: 18 },
-  walletCcy: { fontWeight: "700", color: colors.textPrimary, flex: 1, fontSize: 13 },
-  chgPill: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: "#E0F2FE" },
+  walletCcy: { fontWeight: "800", color: colors.textPrimary, fontSize: 14 },
+  chgPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: "#E0F2FE", alignSelf: "flex-start" },
   chgText: { fontSize: 11, fontWeight: "700", color: colors.accent },
-  walletBal: { fontSize: 17, fontWeight: "800", color: colors.textPrimary },
+  walletBal: { fontSize: 18, fontWeight: "800", color: colors.textPrimary },
 
   insightRow: {
     flexDirection: "row", gap: spacing.sm,
@@ -296,5 +296,5 @@ const s = StyleSheet.create({
   txDot: { width: 10, height: 10, borderRadius: 5 },
   txDesc: { fontWeight: "600", color: colors.textPrimary, fontSize: 14 },
   txTime: { color: colors.textSecondary, fontSize: 12, marginTop: 1 },
-  txAmt: { fontWeight: "700", fontSize: 15 },
+  txAmt: { fontWeight: "700", fontSize: 15, marginLeft: spacing.sm, maxWidth: 112, textAlign: "right" },
 });

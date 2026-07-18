@@ -10,9 +10,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LedgerEntry, WalletApi, WalletBalance } from "@/api/endpoints";
 import { MiniChart } from "@/components/MiniChart";
 import { colors, radius, spacing } from "@/theme/colors";
+import { formatMoney, formatRate, tidyDescription } from "@/utils/format";
 
 const FLAGS: Record<string, string> = { IDR: "🇮🇩", USD: "🇺🇸", SGD: "🇸🇬", EUR: "🇪🇺", MYR: "🇲🇾" };
-const SYMBOLS: Record<string, string> = { IDR: "Rp", USD: "$", SGD: "S$", EUR: "€", MYR: "RM" };
 const DAYS = ["S", "S", "R", "K", "J", "S", "M"];
 
 // Fallback display rates (updated by /wallets/rates when online).
@@ -66,8 +66,8 @@ export default function WalletScreen() {
   }, [active]);
 
   const targetRateLabel = active === "IDR"
-    ? `1 ${target} = Rp ${(rates[target] ?? FALLBACK_RATES[target] ?? 0).toLocaleString("id-ID")}`
-    : `1 ${active} = Rp ${(rates[active] ?? FALLBACK_RATES[active] ?? 0).toLocaleString("id-ID")}`;
+    ? `1 ${target} = Rp ${formatRate(rates[target] ?? FALLBACK_RATES[target] ?? 0)}`
+    : `1 ${active} = Rp ${formatRate(rates[active] ?? FALLBACK_RATES[active] ?? 0)}`;
 
   async function handleConvert() {
     if (balance <= 0) return Alert.alert("Saldo kosong", "Tidak ada saldo untuk dikonversi.");
@@ -123,7 +123,7 @@ export default function WalletScreen() {
               <Text style={s.cardCcy}>{active}</Text>
               {active !== "IDR" && (
                 <Text style={s.cardRate}>
-                  1 {active} = Rp {(rates[active] ?? 0).toLocaleString("id-ID")}
+                  {targetRateLabel}
                 </Text>
               )}
               {active === "IDR" && <Text style={s.cardRate}>{targetRateLabel}</Text>}
@@ -134,12 +134,12 @@ export default function WalletScreen() {
             <View>
               <Text style={s.amtLabel}>Tersedia</Text>
               <Text style={s.amtValue}>
-                {SYMBOLS[active]}{balance.toLocaleString("en-US")}
+                {formatMoney(balance, active, true)}
               </Text>
             </View>
             <View>
               <Text style={s.amtLabel}>Pending</Text>
-              <Text style={[s.amtValue, { color: "#F59E0B" }]}>{SYMBOLS[active]}0</Text>
+              <Text style={[s.amtValue, { color: "#F59E0B" }]}>{formatMoney(0, active)}</Text>
             </View>
           </View>
 
@@ -207,11 +207,11 @@ export default function WalletScreen() {
             >
               <View style={[s.txDot, { backgroundColor: e.direction === "CREDIT" ? "#16A34A" : "#F97316" }]} />
               <View style={{ flex: 1 }}>
-                <Text style={s.txDesc}>{e.description ?? e.ref_type}</Text>
+                <Text style={s.txDesc} numberOfLines={1}>{tidyDescription(e.description ?? e.ref_type)}</Text>
                 <Text style={s.txTime}>{timeAgo(e.created_at)}</Text>
               </View>
               <Text style={[s.txAmt, { color: e.direction === "CREDIT" ? "#16A34A" : colors.textPrimary }]}>
-                {e.direction === "CREDIT" ? "+" : "-"}{SYMBOLS[e.currency] ?? ""}{Number(e.amount).toLocaleString("en-US")}
+                {e.direction === "CREDIT" ? "+" : "-"}{formatMoney(Number(e.amount), e.currency, true)}
               </Text>
             </View>
           ))}
