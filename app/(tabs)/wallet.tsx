@@ -20,6 +20,7 @@ const FALLBACK_RATES: Record<string, number> = {
   IDR: 1, USD: 15850, SGD: 12050, EUR: 17200, MYR: 3450,
 };
 const FX_TARGETS = ["USD", "SGD", "EUR", "MYR"];
+const HISTORY_PAGE_SIZE = 10;
 
 function buildRateTrend(rate: number) {
   if (rate <= 1) return [1, 1, 1, 1, 1, 1, 1];
@@ -43,6 +44,7 @@ export default function WalletScreen() {
   const [active, setActive] = useState("USD");
   const [target, setTarget] = useState("IDR");
   const [history, setHistory] = useState<LedgerEntry[]>([]);
+  const [visibleHistoryCount, setVisibleHistoryCount] = useState(HISTORY_PAGE_SIZE);
   const [rates, setRates] = useState<Record<string, number>>(FALLBACK_RATES);
 
   const load = useCallback(() => {
@@ -55,14 +57,23 @@ export default function WalletScreen() {
 
   const current = wallets.find((w) => w.currency === active);
   const balance = Number(current?.balance ?? 0);
-  const chartW = width - spacing.lg * 2;
+  const chartW = Math.max(
+    0,
+    width - spacing.lg * 2 - spacing.md * 2 - 2,
+  );
   const targetOptions = useMemo(
     () => (active === "IDR" ? FX_TARGETS : ["IDR"]),
     [active],
   );
+  const visibleHistory = useMemo(
+    () => history.slice(0, visibleHistoryCount),
+    [history, visibleHistoryCount],
+  );
+  const remainingHistoryCount = Math.max(0, history.length - visibleHistoryCount);
 
   useEffect(() => {
     setTarget(active === "IDR" ? "USD" : "IDR");
+    setVisibleHistoryCount(HISTORY_PAGE_SIZE);
   }, [active]);
 
   const targetRateLabel = active === "IDR"
@@ -200,7 +211,7 @@ export default function WalletScreen() {
           {history.length === 0 && (
             <Text style={{ color: colors.textSecondary, marginTop: spacing.sm }}>Belum ada transaksi.</Text>
           )}
-          {history.map((e, i) => (
+          {visibleHistory.map((e, i) => (
             <View
               key={e.id}
               style={[s.txRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}
@@ -215,6 +226,18 @@ export default function WalletScreen() {
               </Text>
             </View>
           ))}
+          {remainingHistoryCount > 0 && (
+            <TouchableOpacity
+              accessibilityLabel={`Muat ${Math.min(HISTORY_PAGE_SIZE, remainingHistoryCount)} riwayat lagi`}
+              onPress={() => setVisibleHistoryCount((count) => count + HISTORY_PAGE_SIZE)}
+              style={s.loadMoreButton}
+            >
+              <Text style={s.loadMoreText}>
+                Muat lebih ({remainingHistoryCount} tersisa)
+              </Text>
+              <Ionicons name="chevron-down" size={18} color={colors.primary} />
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -286,4 +309,10 @@ const s = StyleSheet.create({
   txDesc: { fontWeight: "600", color: colors.textPrimary, fontSize: 14 },
   txTime: { color: colors.textSecondary, fontSize: 12, marginTop: 1 },
   txAmt: { fontWeight: "700", fontSize: 15 },
+  loadMoreButton: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: spacing.sm, paddingTop: spacing.md,
+    borderTopWidth: 1, borderTopColor: colors.border,
+  },
+  loadMoreText: { color: colors.primary, fontSize: 13, fontWeight: "700" },
 });

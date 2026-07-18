@@ -31,6 +31,13 @@ function absolutePaymentUrl(url: string) {
   return `${API_URL.replace(/\/$/, "")}${url}`;
 }
 
+function sanitizeAmountInput(value: string) {
+  const normalized = value.replace(/,/g, ".").replace(/[^0-9.]/g, "");
+  const [whole = "", ...fractionParts] = normalized.split(".");
+  if (fractionParts.length === 0) return whole;
+  return `${whole}.${fractionParts.join("")}`;
+}
+
 export default function Receive() {
   const [currency, setCurrency] = useState("USD");
   const [amount, setAmount] = useState("500");
@@ -157,12 +164,13 @@ export default function Receive() {
               style={s.amtInput}
               value={amount}
               onChangeText={(v) => {
-                setAmount(v);
+                setAmount(sanitizeAmountInput(v));
                 setLinkData(null);
                 setLinkConsumed(false);
                 setNotice(null);
               }}
               keyboardType="decimal-pad"
+              inputMode="decimal"
               placeholder="0"
               placeholderTextColor={colors.textSecondary}
             />

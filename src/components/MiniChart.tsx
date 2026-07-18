@@ -28,7 +28,7 @@ export function MiniChart({ data, color = "#2563EB", width, height = 72 }: Props
   }));
 
   return (
-    <View style={{ width, height }}>
+    <View style={{ width, height, overflow: "hidden" }}>
       {/* Connecting lines */}
       {pts.slice(0, -1).map((p, i) => {
         const nx = pts[i + 1].x;
