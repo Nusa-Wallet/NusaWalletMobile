@@ -57,7 +57,10 @@ export default function WalletScreen() {
 
   const current = wallets.find((w) => w.currency === active);
   const balance = Number(current?.balance ?? 0);
-  const chartW = width - spacing.lg * 2;
+  const chartW = Math.max(
+    0,
+    width - spacing.lg * 2 - spacing.md * 2 - 2,
+  );
   const targetOptions = useMemo(
     () => (active === "IDR" ? FX_TARGETS : ["IDR"]),
     [active],
