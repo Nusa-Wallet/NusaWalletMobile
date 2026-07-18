@@ -54,7 +54,6 @@ export default function TabsLayout() {
                 </View>
               ),
               tabBarLabel: isReceive ? () => null : label,
-              tabBarShowLabel: !isReceive,
               tabBarItemStyle: [s.tabItem, isReceive && s.receiveTabItem],
             }}
           />
@@ -100,7 +99,7 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     backgroundColor: colors.accent,
     borderWidth: 4, borderColor: "#fff",
-    transform: [{ translateY: -10 }],
+    transform: [{ translateY: -6 }],
     elevation: 10,
     shadowColor: colors.accent,
     shadowOffset: { width: 0, height: 5 },
