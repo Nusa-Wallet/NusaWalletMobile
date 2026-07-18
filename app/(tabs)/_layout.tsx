@@ -37,24 +37,29 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.textSecondary,
       }}
     >
-      {TABS.map(({ name, label, icon, iconOut }) => (
-        <Tabs.Screen
-          key={name}
-          name={name}
-          options={{
-            tabBarIcon: ({ focused }) => (
-              <View style={[s.tab, focused && s.tabActive]}>
-                <Ionicons
-                  name={(focused ? icon : iconOut) as IconName}
-                  size={22}
-                  color={focused ? colors.accent : colors.textSecondary}
-                />
-              </View>
-            ),
-            tabBarLabel: label,
-          }}
-        />
-      ))}
+      {TABS.map(({ name, label, icon, iconOut }) => {
+        const isReceive = name === "receive";
+        return (
+          <Tabs.Screen
+            key={name}
+            name={name}
+            options={{
+              tabBarIcon: ({ focused }) => (
+                <View style={isReceive ? s.receiveTab : [s.tab, focused && s.tabActive]}>
+                  <Ionicons
+                    name={(focused ? icon : iconOut) as IconName}
+                    size={isReceive ? 28 : 22}
+                    color={isReceive ? "#fff" : focused ? colors.accent : colors.textSecondary}
+                  />
+                </View>
+              ),
+              tabBarLabel: isReceive ? () => null : label,
+              tabBarShowLabel: !isReceive,
+              tabBarItemStyle: [s.tabItem, isReceive && s.receiveTabItem],
+            }}
+          />
+        );
+      })}
     </Tabs>
   );
 }
@@ -62,6 +67,7 @@ export default function TabsLayout() {
 const s = StyleSheet.create({
   tabBar: {
     paddingTop: 8,
+    overflow: "visible",
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: "#fff",
@@ -87,6 +93,19 @@ const s = StyleSheet.create({
   },
   tabActive: {
     // subtle highlight on active tab
+  },
+  receiveTabItem: { overflow: "visible" },
+  receiveTab: {
+    width: 58, height: 58, borderRadius: 29,
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: colors.accent,
+    borderWidth: 4, borderColor: "#fff",
+    transform: [{ translateY: -10 }],
+    elevation: 10,
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   label: {
     fontSize: 11,
