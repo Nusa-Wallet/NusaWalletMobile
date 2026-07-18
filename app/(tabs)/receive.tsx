@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
-import { useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   Alert, KeyboardAvoidingView, Platform,
   ScrollView, Share, StyleSheet, Text,
@@ -8,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { FraudResult, PaymentApi, RiskLevel } from "@/api/endpoints";
+import { FraudResult, PaymentApi, RiskLevel, WalletApi } from "@/api/endpoints";
 import { API_URL } from "@/api/client";
 import { colors, radius, spacing } from "@/theme/colors";
 
@@ -20,7 +21,7 @@ const RISK_COLOR: Record<RiskLevel, string> = {
 
 const CCYS = ["USD", "SGD", "EUR", "MYR"];
 const SYMBOLS: Record<string, string> = { USD: "$", SGD: "S$", EUR: "€", MYR: "RM" };
-const IDR_RATES: Record<string, number> = { USD: 15850, SGD: 12050, EUR: 17200, MYR: 3450 };
+const FALLBACK_IDR_RATES: Record<string, number> = { USD: 15850, SGD: 12050, EUR: 17200, MYR: 3450 };
 const FEE_RATE = 0.005; // 0.5%
 
 interface LinkData { code: string; url: string }
@@ -39,12 +40,19 @@ export default function Receive() {
   const [loading, setLoading] = useState(false);
   const [fraud, setFraud] = useState<FraudResult | null>(null);
   const [paying, setPaying] = useState(false);
+  const [rates, setRates] = useState<Record<string, number>>(FALLBACK_IDR_RATES);
+
+  useFocusEffect(
+    useCallback(() => {
+      WalletApi.rates().then((r) => setRates(r.data)).catch(() => {});
+    }, []),
+  );
 
   const sym = SYMBOLS[currency] ?? "";
   const amt = Number(amount) || 0;
   const fee = +(amt * FEE_RATE).toFixed(2);
   const net = +(amt - fee).toFixed(2);
-  const idrEquiv = Math.round(net * (IDR_RATES[currency] ?? 0));
+  const idrEquiv = Math.round(net * (rates[currency] ?? FALLBACK_IDR_RATES[currency] ?? 0));
   const displayUrl = linkData ? absolutePaymentUrl(linkData.url) : null;
 
   async function generate() {

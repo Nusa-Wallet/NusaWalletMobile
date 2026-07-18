@@ -5,41 +5,43 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "rea
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, G } from "react-native-svg";
 
-import { FxAdvisory, InsightsApi, RiskPreference, WalletApi } from "@/api/endpoints";
+import {
+  FxAdvisory,
+  InsightsApi,
+  LedgerEntry,
+  RiskPreference,
+  WalletApi,
+  WalletBalance,
+} from "@/api/endpoints";
 import { colors, radius, spacing } from "@/theme/colors";
 
-// Mock monthly income data (Juta IDR)
-const MONTHLY = [
-  { label: "Jan", val: 52 },
-  { label: "Feb", val: 61 },
-  { label: "Mar", val: 58 },
-  { label: "Apr", val: 70 },
-  { label: "Mei", val: 65 },
-  { label: "Jun", val: 75 },
-];
-const BAR_MAX = 80;
+const CCY_COLORS: Record<string, string> = {
+  USD: "#2563EB",
+  EUR: "#7C3AED",
+  SGD: "#16A34A",
+  MYR: "#F97316",
+  IDR: "#0F766E",
+};
 
-const CCY_USAGE = [
-  { label: "USD", pct: 55, color: "#2563EB" },
-  { label: "EUR", pct: 20, color: "#7C3AED" },
-  { label: "SGD", pct: 18, color: "#16A34A" },
-  { label: "MYR", pct: 7, color: "#F97316" },
-];
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 
-function CurrencyUsageDonut() {
+type CurrencyUsage = { label: string; pct: number; color: string };
+
+function CurrencyUsageDonut({ data }: { data: CurrencyUsage[] }) {
   const size = 140;
   const center = size / 2;
   const strokeWidth = 16;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   let accumulatedPercent = 0;
+  const accessibility = data.map((c) => `${c.label} ${c.pct} persen`).join(", ");
 
   return (
     <View
       style={[s.donutWrap, { width: size, height: size }]}
       accessible
       accessibilityRole="image"
-      accessibilityLabel="Komposisi transaksi valas: USD 55 persen, EUR 20 persen, SGD 18 persen, dan MYR 7 persen"
+      accessibilityLabel={`Komposisi saldo valas: ${accessibility}`}
     >
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <Circle
@@ -51,7 +53,7 @@ function CurrencyUsageDonut() {
           strokeWidth={strokeWidth}
         />
         <G rotation="-90" origin={`${center}, ${center}`}>
-          {CCY_USAGE.map((currency) => {
+          {data.map((currency) => {
             const segmentLength = (currency.pct / 100) * circumference;
             const offset = -((accumulatedPercent / 100) * circumference);
             accumulatedPercent += currency.pct;
@@ -99,18 +101,66 @@ const RISK_OPTIONS: { key: RiskPreference; label: string }[] = [
 
 const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
 
+function toIdr(amount: number, currency: string, rates: Record<string, number>) {
+  return amount * (rates[currency] ?? 0);
+}
+
+function buildCurrencyUsage(wallets: WalletBalance[], rates: Record<string, number>): CurrencyUsage[] {
+  const values = wallets
+    .filter((w) => w.currency !== "IDR")
+    .map((w) => ({
+      label: w.currency,
+      value: toIdr(Number(w.balance), w.currency, rates),
+      color: CCY_COLORS[w.currency] ?? colors.accent,
+    }))
+    .filter((w) => w.value > 0);
+  const total = values.reduce((sum, item) => sum + item.value, 0);
+  if (total <= 0) return [{ label: "IDR", pct: 100, color: CCY_COLORS.IDR }];
+  return values.map((item) => ({
+    label: item.label,
+    pct: Math.round((item.value / total) * 100),
+    color: item.color,
+  }));
+}
+
+function buildMonthlyIncome(entries: LedgerEntry[], rates: Record<string, number>) {
+  const now = new Date();
+  const months = Array.from({ length: 6 }, (_, idx) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
+    return { key: `${d.getFullYear()}-${d.getMonth()}`, label: MONTH_LABELS[d.getMonth()], val: 0 };
+  });
+  for (const entry of entries) {
+    if (entry.direction !== "CREDIT") continue;
+    const d = new Date(entry.created_at);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const month = months.find((m) => m.key === key);
+    if (month) month.val += toIdr(Number(entry.amount), entry.currency, rates) / 1_000_000;
+  }
+  return months.map(({ label, val }) => ({ label, val: Math.round(val * 10) / 10 }));
+}
+
 export default function Insights() {
   const [adv, setAdv] = useState<FxAdvisory | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [risk, setRisk] = useState<RiskPreference>("MODERATE");
   const [usdBalance, setUsdBalance] = useState(1000);
   const [converting, setConverting] = useState(false);
+  const [wallets, setWallets] = useState<WalletBalance[]>([]);
+  const [recent, setRecent] = useState<LedgerEntry[]>([]);
+  const [rates, setRates] = useState<Record<string, number>>({ IDR: 1 });
 
   const fetchAll = useCallback(async (rp: RiskPreference) => {
     let amount = 1000;
     try {
-      const { data } = await WalletApi.list();
-      amount = Number(data.find((w) => w.currency === "USD")?.balance ?? 0) || 1000;
+      const [{ data: walletData }, { data: rateData }, { data: recentData }] = await Promise.all([
+        WalletApi.list(),
+        WalletApi.rates(),
+        WalletApi.recentTransactions(50),
+      ]);
+      setWallets(walletData);
+      setRates(rateData);
+      setRecent(recentData);
+      amount = Number(walletData.find((w) => w.currency === "USD")?.balance ?? 0) || 1000;
       setUsdBalance(amount);
     } catch {
       /* keep default amount */
@@ -153,6 +203,13 @@ export default function Insights() {
   const action = adv ? ACTION_META[adv.action] : null;
   const gain = adv?.estimated_gain_loss ?? null;
   const pct = adv?.recommended_convert_percentage ?? null;
+  const monthly = buildMonthlyIncome(recent, rates);
+  const barMax = Math.max(...monthly.map((m) => m.val), 1);
+  const currencyUsage = buildCurrencyUsage(wallets, rates);
+  const incomeIdr = recent
+    .filter((e) => e.direction === "CREDIT")
+    .reduce((sum, e) => sum + toIdr(Number(e.amount), e.currency, rates), 0);
+  const projectedSavings = Math.max(gain ?? 0, 0);
 
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
@@ -164,12 +221,12 @@ export default function Insights() {
           <View style={s.summaryCard}>
             <Ionicons name="trending-up" size={20} color="#0EA5E9" />
             <Text style={s.summaryLabel}>Pendapatan</Text>
-            <Text style={s.summaryVal}>Rp 75M</Text>
+            <Text style={s.summaryVal}>{rupiah(incomeIdr)}</Text>
           </View>
           <View style={s.summaryCard}>
             <Ionicons name="checkmark-circle" size={20} color="#16A34A" />
-            <Text style={s.summaryLabel}>Penghematan</Text>
-            <Text style={s.summaryVal}>Rp 2.4M</Text>
+            <Text style={s.summaryLabel}>Potensi hemat</Text>
+            <Text style={s.summaryVal}>{rupiah(projectedSavings)}</Text>
           </View>
         </View>
 
@@ -177,10 +234,10 @@ export default function Insights() {
         <View style={s.card}>
           <Text style={s.cardTitle}>Pendapatan Bulanan (Juta Rp)</Text>
           <View style={s.barChart}>
-            {MONTHLY.map((m) => (
+            {monthly.map((m) => (
               <View key={m.label} style={s.barCol}>
                 <View style={s.barTrack}>
-                  <View style={[s.bar, { height: `${(m.val / BAR_MAX) * 100}%` }]} />
+                  <View style={[s.bar, { height: m.val > 0 ? `${Math.max((m.val / barMax) * 100, 8)}%` : 0 }]} />
                 </View>
                 <Text style={s.barLabel}>{m.label}</Text>
               </View>
@@ -192,13 +249,13 @@ export default function Insights() {
         <View style={s.card}>
           <Text style={[s.cardTitle, { marginBottom: 4 }]}>Penggunaan Mata Uang</Text>
           <Text style={s.chartSubtitle}>
-            Proporsi nilai transaksi valas per mata uang (data demo)
+            Proporsi nilai saldo valas berdasarkan kurs backend.
           </Text>
           <View style={s.donutRow}>
-            <CurrencyUsageDonut />
+            <CurrencyUsageDonut data={currencyUsage} />
 
             <View style={s.donutLegend}>
-              {CCY_USAGE.map((c) => (
+              {currencyUsage.map((c) => (
                 <View key={c.label} style={s.legendRow}>
                   <View style={[s.legendDot, { backgroundColor: c.color }]} />
                   <Text style={s.legendLabel}>{c.label}</Text>

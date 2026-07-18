@@ -9,8 +9,6 @@ import { colors, radius, spacing } from "@/theme/colors";
 
 const FLAGS: Record<string, string> = { IDR: "🇮🇩", USD: "🇺🇸", SGD: "🇸🇬", EUR: "🇪🇺", MYR: "🇲🇾" };
 const SYMBOLS: Record<string, string> = { IDR: "Rp", USD: "$", SGD: "S$", EUR: "€", MYR: "RM" };
-const MOCK_CHANGE: Record<string, number> = { IDR: 2.1, USD: 0.5, SGD: 1.2, EUR: -0.8, MYR: -0.3 };
-
 const QUICK = [
   { icon: "download-outline", label: "Terima", bg: "#2563EB", tab: "receive" },
   { icon: "swap-horizontal-outline", label: "Konversi", bg: "#16A34A", tab: "wallet" },
@@ -31,17 +29,27 @@ export default function Home() {
   const [wallets, setWallets] = useState<WalletBalance[]>([]);
   const [recent, setRecent] = useState<LedgerEntry[]>([]);
   const [confidence, setConfidence] = useState<number | null>(null);
+  const [rates, setRates] = useState<Record<string, number>>({ IDR: 1 });
 
   useFocusEffect(
     useCallback(() => {
       WalletApi.list().then((r) => setWallets(r.data)).catch(() => {});
       WalletApi.recentTransactions(5).then((r) => setRecent(r.data)).catch(() => {});
+      WalletApi.rates().then((r) => setRates(r.data)).catch(() => {});
       InsightsApi.fxAdvisory("USD", "IDR").then((r) => setConfidence(r.data.confidence)).catch(() => {});
     }, [])
   );
 
   const idrBalance = Number(wallets.find((w) => w.currency === "IDR")?.balance ?? 0);
   const nonIdr = wallets.filter((w) => w.currency !== "IDR");
+  const totalIdr = wallets.reduce(
+    (sum, w) => sum + Number(w.balance) * (rates[w.currency] ?? 0),
+    0,
+  );
+  const incomingIdr = recent
+    .filter((e) => e.direction === "CREDIT")
+    .reduce((sum, e) => sum + Number(e.amount) * (rates[e.currency] ?? 0), 0);
+  const activeCurrencyCount = wallets.filter((w) => Number(w.balance) > 0).length;
 
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
@@ -60,26 +68,31 @@ export default function Home() {
             </View>
           </View>
 
-          <Text style={s.saldoLabel}>Total Saldo</Text>
-          <Text style={s.saldoValue}>Rp {idrBalance.toLocaleString("id-ID")}</Text>
+          <Text style={s.saldoLabel}>Total Saldo Ekuivalen</Text>
+          <Text style={s.saldoValue}>Rp {Math.round(totalIdr || idrBalance).toLocaleString("id-ID")}</Text>
 
           <View style={s.growthBadge}>
-            <Ionicons name="trending-up" size={12} color="#16A34A" />
-            <Text style={s.growthText}>+8.2% bulan ini</Text>
+            <Ionicons name="sync-outline" size={12} color="#16A34A" />
+            <Text style={s.growthText}>Kurs backend aktif</Text>
           </View>
 
           <View style={s.statsRow}>
             {[
-              { icon: "arrow-down-outline", label: "Masuk", val: "12.5M", color: "#94A3B8" },
-              { icon: "time-outline", label: "Pending", val: "2.8M", color: "#94A3B8" },
-              { icon: "alert-circle-outline", label: "Alert", val: "1", color: "#F87171" },
+              {
+                icon: "arrow-down-outline",
+                label: "Masuk",
+                val: `${Math.round(incomingIdr / 1_000_000)}M`,
+                color: "#94A3B8",
+              },
+              { icon: "wallet-outline", label: "Currency", val: `${activeCurrencyCount}`, color: "#94A3B8" },
+              { icon: "receipt-outline", label: "Riwayat", val: `${recent.length}`, color: "#94A3B8" },
             ].map((stat, i) => (
               <View key={stat.label} style={{ flexDirection: "row", flex: 1 }}>
                 {i > 0 && <View style={s.statDivider} />}
                 <View style={s.stat}>
                   <Ionicons name={stat.icon as any} size={13} color={stat.color} />
                   <Text style={s.statLabel}>{stat.label}</Text>
-                  <Text style={[s.statVal, { color: i === 2 ? "#F87171" : "#fff" }]}>{stat.val}</Text>
+                  <Text style={s.statVal}>{stat.val}</Text>
                 </View>
               </View>
             ))}
@@ -114,8 +127,7 @@ export default function Home() {
             contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.sm, paddingBottom: 4 }}
           >
             {nonIdr.map((w) => {
-              const chg = MOCK_CHANGE[w.currency] ?? 0;
-              const positive = chg >= 0;
+              const rate = rates[w.currency] ?? 0;
               return (
                 <TouchableOpacity
                   key={w.currency}
@@ -125,10 +137,8 @@ export default function Home() {
                   <View style={s.walletCardTop}>
                     <Text style={s.flagEmoji}>{FLAGS[w.currency]}</Text>
                     <Text style={s.walletCcy}>{w.currency}</Text>
-                    <View style={[s.chgPill, { backgroundColor: positive ? "#DCFCE7" : "#FEE2E2" }]}>
-                      <Text style={[s.chgText, { color: positive ? "#16A34A" : "#DC2626" }]}>
-                        {positive ? "+" : ""}{chg}%
-                      </Text>
+                    <View style={s.chgPill}>
+                      <Text style={s.chgText}>Rp {Math.round(rate).toLocaleString("id-ID")}</Text>
                     </View>
                   </View>
                   <Text style={s.walletBal}>
@@ -256,8 +266,8 @@ const s = StyleSheet.create({
   walletCardTop: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: spacing.xs },
   flagEmoji: { fontSize: 18 },
   walletCcy: { fontWeight: "700", color: colors.textPrimary, flex: 1, fontSize: 13 },
-  chgPill: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
-  chgText: { fontSize: 11, fontWeight: "700" },
+  chgPill: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: "#E0F2FE" },
+  chgText: { fontSize: 11, fontWeight: "700", color: colors.accent },
   walletBal: { fontSize: 17, fontWeight: "800", color: colors.textPrimary },
 
   insightRow: {

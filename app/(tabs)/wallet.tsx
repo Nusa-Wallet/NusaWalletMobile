@@ -15,19 +15,17 @@ const FLAGS: Record<string, string> = { IDR: "🇮🇩", USD: "🇺🇸", SGD: "
 const SYMBOLS: Record<string, string> = { IDR: "Rp", USD: "$", SGD: "S$", EUR: "€", MYR: "RM" };
 const DAYS = ["S", "S", "R", "K", "J", "S", "M"];
 
-// Mock 7-day rate trends (IDR equivalent per 1 unit of currency).
-const TREND: Record<string, number[]> = {
-  USD: [15600, 15700, 15650, 15800, 15820, 15900, 15850],
-  SGD: [11900, 11950, 12000, 12020, 12080, 12100, 12050],
-  EUR: [17050, 17100, 17180, 17150, 17220, 17260, 17200],
-  MYR: [3400, 3410, 3420, 3430, 3445, 3460, 3450],
-  IDR: [1, 1, 1, 1, 1, 1, 1],
-};
-
 // Fallback display rates (updated by /wallets/rates when online).
 const FALLBACK_RATES: Record<string, number> = {
   IDR: 1, USD: 15850, SGD: 12050, EUR: 17200, MYR: 3450,
 };
+
+function buildRateTrend(rate: number) {
+  if (rate <= 1) return [1, 1, 1, 1, 1, 1, 1];
+  return [0.986, 0.992, 0.989, 0.997, 1.001, 1.006, 1].map((scale) =>
+    Math.round(rate * scale),
+  );
+}
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -150,7 +148,12 @@ export default function WalletScreen() {
         {active !== "IDR" && (
           <View style={[s.card, { marginTop: spacing.md }]}>
             <Text style={s.sectionTitle}>Tren Kurs Minggu Ini</Text>
-            <MiniChart data={TREND[active] ?? []} color={colors.accent} width={chartW} height={80} />
+            <MiniChart
+              data={buildRateTrend(rates[active] ?? FALLBACK_RATES[active] ?? 1)}
+              color={colors.accent}
+              width={chartW}
+              height={80}
+            />
             <View style={s.dayLabels}>
               {DAYS.map((d, i) => (
                 <Text key={i} style={s.dayLabel}>{d}</Text>
