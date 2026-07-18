@@ -71,11 +71,6 @@ export default function Home() {
           <Text style={s.saldoLabel}>Total Saldo Ekuivalen</Text>
           <Text style={s.saldoValue}>{formatMoney(totalIdr || idrBalance, "IDR")}</Text>
 
-          <View style={s.growthBadge}>
-            <Ionicons name="sync-outline" size={12} color="#16A34A" />
-            <Text style={s.growthText}>Kurs backend aktif</Text>
-          </View>
-
           <View style={s.statsRow}>
             {[
               {
