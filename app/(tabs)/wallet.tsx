@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert, ScrollView, StyleSheet, Text,
   TouchableOpacity, useWindowDimensions, View,
@@ -19,6 +19,7 @@ const DAYS = ["S", "S", "R", "K", "J", "S", "M"];
 const FALLBACK_RATES: Record<string, number> = {
   IDR: 1, USD: 15850, SGD: 12050, EUR: 17200, MYR: 3450,
 };
+const FX_TARGETS = ["USD", "SGD", "EUR", "MYR"];
 
 function buildRateTrend(rate: number) {
   if (rate <= 1) return [1, 1, 1, 1, 1, 1, 1];
@@ -40,6 +41,7 @@ export default function WalletScreen() {
   const router = useRouter();
   const [wallets, setWallets] = useState<WalletBalance[]>([]);
   const [active, setActive] = useState("USD");
+  const [target, setTarget] = useState("IDR");
   const [history, setHistory] = useState<LedgerEntry[]>([]);
   const [rates, setRates] = useState<Record<string, number>>(FALLBACK_RATES);
 
@@ -54,14 +56,27 @@ export default function WalletScreen() {
   const current = wallets.find((w) => w.currency === active);
   const balance = Number(current?.balance ?? 0);
   const chartW = width - spacing.lg * 2;
+  const targetOptions = useMemo(
+    () => (active === "IDR" ? FX_TARGETS : ["IDR"]),
+    [active],
+  );
+
+  useEffect(() => {
+    setTarget(active === "IDR" ? "USD" : "IDR");
+  }, [active]);
+
+  const targetRateLabel = active === "IDR"
+    ? `1 ${target} = Rp ${(rates[target] ?? FALLBACK_RATES[target] ?? 0).toLocaleString("id-ID")}`
+    : `1 ${active} = Rp ${(rates[active] ?? FALLBACK_RATES[active] ?? 0).toLocaleString("id-ID")}`;
 
   async function handleConvert() {
     if (balance <= 0) return Alert.alert("Saldo kosong", "Tidak ada saldo untuk dikonversi.");
+    if (active === target) return Alert.alert("Tujuan tidak valid", "Pilih mata uang tujuan yang berbeda.");
     try {
-      const { data } = await WalletApi.convert(active, "IDR", balance);
+      const { data } = await WalletApi.convert(active, target, balance);
       Alert.alert(
         "Konversi berhasil",
-        `+Rp ${Number(data.amount_out).toLocaleString("id-ID")}\nFee: Rp ${Number(data.fee).toLocaleString("id-ID")}`
+        `+${target} ${Number(data.amount_out).toLocaleString("en-US")}\nFee: ${target} ${Number(data.fee).toLocaleString("en-US")}`
       );
       load();
     } catch (e: any) {
@@ -111,6 +126,7 @@ export default function WalletScreen() {
                   1 {active} = Rp {(rates[active] ?? 0).toLocaleString("id-ID")}
                 </Text>
               )}
+              {active === "IDR" && <Text style={s.cardRate}>{targetRateLabel}</Text>}
             </View>
           </View>
 
@@ -127,13 +143,29 @@ export default function WalletScreen() {
             </View>
           </View>
 
+          <View style={s.convertBox}>
+            <Text style={s.amtLabel}>Tujuan konversi</Text>
+            <View style={s.targetRow}>
+              {targetOptions.map((ccy) => (
+                <TouchableOpacity
+                  key={ccy}
+                  onPress={() => setTarget(ccy)}
+                  style={[s.targetChip, target === ccy && s.targetChipActive]}
+                >
+                  <Text style={s.targetFlag}>{FLAGS[ccy]}</Text>
+                  <Text style={[s.targetText, target === ccy && s.targetTextActive]}>
+                    {ccy}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           <View style={s.btnRow}>
-            {active !== "IDR" && (
-              <TouchableOpacity style={[s.actionBtn, { flex: 1 }]} onPress={handleConvert}>
-                <Ionicons name="swap-horizontal-outline" size={16} color="#fff" />
-                <Text style={s.actionBtnText}>Konversi</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={[s.actionBtn, { flex: 1 }]} onPress={handleConvert}>
+              <Ionicons name="swap-horizontal-outline" size={16} color="#fff" />
+              <Text style={s.actionBtnText}>Konversi ke {target}</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={[s.actionBtn, s.actionBtnAlt, { flex: 1 }]}
               onPress={() => router.push("/(tabs)/insights")}
@@ -221,6 +253,18 @@ const s = StyleSheet.create({
   amountsRow: { flexDirection: "row", gap: spacing.xl, marginBottom: spacing.md },
   amtLabel: { color: colors.textSecondary, fontSize: 12, marginBottom: 2 },
   amtValue: { fontSize: 26, fontWeight: "800", color: colors.textPrimary },
+  convertBox: { marginBottom: spacing.md },
+  targetRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: 8 },
+  targetChip: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, minWidth: 78, height: 38, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background,
+    paddingHorizontal: spacing.sm,
+  },
+  targetChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  targetFlag: { fontSize: 15 },
+  targetText: { color: colors.textSecondary, fontWeight: "700", fontSize: 13 },
+  targetTextActive: { color: "#fff" },
 
   btnRow: { flexDirection: "row", gap: spacing.sm },
   actionBtn: {
