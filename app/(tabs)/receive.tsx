@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { FraudResult, PaymentApi, RiskLevel } from "@/api/endpoints";
+import { API_URL } from "@/api/client";
 import { colors, radius, spacing } from "@/theme/colors";
 
 const RISK_COLOR: Record<RiskLevel, string> = {
@@ -23,6 +24,11 @@ const IDR_RATES: Record<string, number> = { USD: 15850, SGD: 12050, EUR: 17200, 
 const FEE_RATE = 0.005; // 0.5%
 
 interface LinkData { code: string; url: string }
+
+function absolutePaymentUrl(url: string) {
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return `${API_URL.replace(/\/$/, "")}${url}`;
+}
 
 export default function Receive() {
   const [currency, setCurrency] = useState("USD");
@@ -39,9 +45,7 @@ export default function Receive() {
   const fee = +(amt * FEE_RATE).toFixed(2);
   const net = +(amt - fee).toFixed(2);
   const idrEquiv = Math.round(net * (IDR_RATES[currency] ?? 0));
-  const displayUrl = linkData
-    ? `pay.nusawallet.id/p/andi/${currency.toLowerCase()}/${amt}`
-    : null;
+  const displayUrl = linkData ? absolutePaymentUrl(linkData.url) : null;
 
   async function generate() {
     if (amt <= 0) return Alert.alert("Jumlah tidak valid", "Masukkan jumlah yang benar.");
@@ -62,13 +66,13 @@ export default function Receive() {
 
   async function copy() {
     if (!displayUrl) return;
-    await Clipboard.setStringAsync(`https://${displayUrl}`);
+    await Clipboard.setStringAsync(displayUrl);
     Alert.alert("Disalin", "Link pembayaran disalin ke clipboard.");
   }
 
   async function share() {
     if (!displayUrl) return;
-    await Share.share({ message: `Bayar saya via NusaWallet: https://${displayUrl}` });
+    await Share.share({ message: `Bayar saya via NusaWallet: ${displayUrl}` });
   }
 
   // Sandbox demo: simulate an incoming payment so the fraud engine's result is visible.
