@@ -4,17 +4,11 @@ import { useCallback, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { InsightsApi, LedgerEntry, WalletApi, WalletBalance } from "@/api/endpoints";
+import { LedgerEntry, WalletApi, WalletBalance } from "@/api/endpoints";
 import { colors, radius, spacing } from "@/theme/colors";
 import { formatMoney, formatRate, tidyDescription } from "@/utils/format";
 
 const FLAGS: Record<string, string> = { IDR: "🇮🇩", USD: "🇺🇸", SGD: "🇸🇬", EUR: "🇪🇺", MYR: "🇲🇾" };
-const QUICK = [
-  { icon: "download-outline", label: "Terima", bg: "#2563EB", tab: "receive" },
-  { icon: "swap-horizontal-outline", label: "Konversi", bg: "#16A34A", tab: "wallet" },
-  { icon: "send-outline", label: "Kirim", bg: "#7C3AED", tab: null },
-  { icon: "time-outline", label: "Riwayat", bg: "#EA580C", tab: "wallet" },
-] as const;
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -28,7 +22,6 @@ export default function Home() {
   const router = useRouter();
   const [wallets, setWallets] = useState<WalletBalance[]>([]);
   const [recent, setRecent] = useState<LedgerEntry[]>([]);
-  const [confidence, setConfidence] = useState<number | null>(null);
   const [rates, setRates] = useState<Record<string, number>>({ IDR: 1 });
 
   useFocusEffect(
@@ -36,7 +29,6 @@ export default function Home() {
       WalletApi.list().then((r) => setWallets(r.data)).catch(() => {});
       WalletApi.recentTransactions(5).then((r) => setRecent(r.data)).catch(() => {});
       WalletApi.rates().then((r) => setRates(r.data)).catch(() => {});
-      InsightsApi.fxAdvisory("USD", "IDR").then((r) => setConfidence(r.data.confidence)).catch(() => {});
     }, [])
   );
 
@@ -95,22 +87,6 @@ export default function Home() {
         </View>
 
         <View style={s.body}>
-          {/* ── QUICK ACTIONS ─────────────────────────── */}
-          <View style={s.quickRow}>
-            {QUICK.map((q) => (
-              <TouchableOpacity
-                key={q.label}
-                style={s.quick}
-                onPress={() => q.tab && router.push(`/(tabs)/${q.tab}` as any)}
-              >
-                <View style={[s.quickCircle, { backgroundColor: q.bg }]}>
-                  <Ionicons name={q.icon as any} size={22} color="#fff" />
-                </View>
-                <Text style={s.quickLabel}>{q.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
           {/* ── DOMPET SAYA ───────────────────────────── */}
           <View style={s.sectionRow}>
             <Text style={s.sectionTitle}>Dompet Saya</Text>
@@ -142,28 +118,6 @@ export default function Home() {
               );
             })}
           </ScrollView>
-
-          {/* ── INSIGHT CARDS ─────────────────────────── */}
-          <View style={s.insightRow}>
-            <View style={[s.insightCard, { borderColor: "#BFDBFE" }]}>
-              <View style={[s.insightIconWrap, { backgroundColor: "#EFF6FF" }]}>
-                <Ionicons name="globe-outline" size={18} color={colors.accent} />
-              </View>
-              <Text style={s.insightTitle}>AI FX Insight</Text>
-              <Text style={s.insightSub}>Konversi USD ✓</Text>
-              <Text style={[s.insightSub, { color: colors.accent, fontWeight: "600" }]}>
-                Confidence: {confidence !== null ? `${(confidence * 100).toFixed(0)}%` : "–"}
-              </Text>
-            </View>
-            <View style={[s.insightCard, { borderColor: "#BBF7D0" }]}>
-              <View style={[s.insightIconWrap, { backgroundColor: "#F0FDF4" }]}>
-                <Ionicons name="shield-checkmark-outline" size={18} color="#16A34A" />
-              </View>
-              <Text style={s.insightTitle}>Keamanan</Text>
-              <Text style={s.insightSub}>Semua aman ✓</Text>
-              <Text style={[s.insightSub, { color: colors.textSecondary }]}>5 menit lalu</Text>
-            </View>
-          </View>
 
           {/* ── TRANSAKSI TERBARU ─────────────────────── */}
           <View style={s.sectionRow}>
@@ -236,13 +190,6 @@ const s = StyleSheet.create({
 
   // Body
   body: { paddingBottom: 32 },
-  quickRow: {
-    flexDirection: "row", justifyContent: "space-around",
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.lg,
-  },
-  quick: { alignItems: "center", gap: 6 },
-  quickCircle: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
-  quickLabel: { fontSize: 12, color: colors.textSecondary, fontWeight: "500" },
 
   sectionRow: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
@@ -262,21 +209,6 @@ const s = StyleSheet.create({
   chgPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: "#E0F2FE", alignSelf: "flex-start" },
   chgText: { fontSize: 11, fontWeight: "700", color: colors.accent },
   walletBal: { fontSize: 18, fontWeight: "800", color: colors.textPrimary },
-
-  insightRow: {
-    flexDirection: "row", gap: spacing.sm,
-    paddingHorizontal: spacing.lg, marginVertical: spacing.md,
-  },
-  insightCard: {
-    flex: 1, backgroundColor: colors.card,
-    borderRadius: radius.lg, padding: spacing.md, borderWidth: 1.5,
-  },
-  insightIconWrap: {
-    width: 36, height: 36, borderRadius: 10,
-    alignItems: "center", justifyContent: "center", marginBottom: spacing.xs,
-  },
-  insightTitle: { fontWeight: "700", color: colors.textPrimary, fontSize: 13 },
-  insightSub: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
 
   txCard: {
     marginHorizontal: spacing.lg, backgroundColor: colors.card,
