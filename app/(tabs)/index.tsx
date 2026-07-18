@@ -119,7 +119,6 @@ export default function Home() {
           {/* ── DOMPET SAYA ───────────────────────────── */}
           <View style={s.sectionRow}>
             <Text style={s.sectionTitle}>Dompet Saya</Text>
-            <Text style={s.sectionLink}>Lihat Semua</Text>
           </View>
           <ScrollView
             horizontal
@@ -174,7 +173,6 @@ export default function Home() {
           {/* ── TRANSAKSI TERBARU ─────────────────────── */}
           <View style={s.sectionRow}>
             <Text style={s.sectionTitle}>Transaksi Terbaru</Text>
-            <Text style={s.sectionLink}>Semua</Text>
           </View>
           <View style={s.txCard}>
             {recent.length === 0 && (

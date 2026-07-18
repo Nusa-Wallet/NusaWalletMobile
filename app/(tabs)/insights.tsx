@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import {
+  ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, G } from "react-native-svg";
 
@@ -148,8 +150,12 @@ export default function Insights() {
   const [wallets, setWallets] = useState<WalletBalance[]>([]);
   const [recent, setRecent] = useState<LedgerEntry[]>([]);
   const [rates, setRates] = useState<Record<string, number>>({ IDR: 1 });
+  const [recommendationLoading, setRecommendationLoading] = useState(true);
+  const recommendationRequest = useRef(0);
 
   const fetchAll = useCallback(async (rp: RiskPreference) => {
+    const requestId = ++recommendationRequest.current;
+    setRecommendationLoading(true);
     let amount = 1000;
     try {
       const [{ data: walletData }, { data: rateData }, { data: recentData }] = await Promise.all([
@@ -157,11 +163,13 @@ export default function Insights() {
         WalletApi.rates(),
         WalletApi.recentTransactions(50),
       ]);
-      setWallets(walletData);
-      setRates(rateData);
-      setRecent(recentData);
+      if (requestId === recommendationRequest.current) {
+        setWallets(walletData);
+        setRates(rateData);
+        setRecent(recentData);
+      }
       amount = Number(walletData.find((w) => w.currency === "USD")?.balance ?? 0) || 1000;
-      setUsdBalance(amount);
+      if (requestId === recommendationRequest.current) setUsdBalance(amount);
     } catch {
       /* keep default amount */
     }
@@ -171,10 +179,18 @@ export default function Insights() {
         horizon_days: 7,
         risk_preference: rp,
       });
-      setAdv(data);
-      setError(null);
+      if (requestId === recommendationRequest.current) {
+        setAdv(data);
+        setError(null);
+      }
     } catch {
-      setError("Layanan AI tidak tersedia (port 8001).");
+      if (requestId === recommendationRequest.current) {
+        setError("Layanan AI tidak tersedia (port 8001).");
+      }
+    } finally {
+      if (requestId === recommendationRequest.current) {
+        setRecommendationLoading(false);
+      }
     }
   }, []);
 
@@ -273,6 +289,14 @@ export default function Insights() {
           </View>
         )}
 
+        {recommendationLoading && !adv && (
+          <View style={[s.card, s.recommendationLoading]}>
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Text style={s.recommendationLoadingTitle}>Mohon tunggu</Text>
+            <Text style={s.recommendationLoadingText}>Sedang mengambil rekomendasi AI terbaru.</Text>
+          </View>
+        )}
+
         {adv && action && (
           <View style={s.card}>
             <View style={s.aiHeader}>
@@ -290,8 +314,17 @@ export default function Insights() {
               {RISK_OPTIONS.map((o) => (
                 <TouchableOpacity
                   key={o.key}
-                  onPress={() => setRisk(o.key)}
-                  style={[s.riskChip, risk === o.key && s.riskChipActive]}
+                  disabled={recommendationLoading}
+                  onPress={() => {
+                    if (risk === o.key) return;
+                    setRecommendationLoading(true);
+                    setRisk(o.key);
+                  }}
+                  style={[
+                    s.riskChip,
+                    risk === o.key && s.riskChipActive,
+                    recommendationLoading && s.riskChipDisabled,
+                  ]}
                 >
                   <Text style={[s.riskChipText, risk === o.key && s.riskChipTextActive]}>
                     {o.label}
@@ -300,10 +333,18 @@ export default function Insights() {
               ))}
             </View>
 
-            <Text style={s.aiDesc}>{adv.rationale}</Text>
+            {recommendationLoading ? (
+              <View style={s.recommendationLoading}>
+                <ActivityIndicator size="small" color={colors.accent} />
+                <Text style={s.recommendationLoadingTitle}>Mohon tunggu</Text>
+                <Text style={s.recommendationLoadingText}>Sedang mengambil rekomendasi AI terbaru.</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={s.aiDesc}>{adv.rationale}</Text>
 
-            {/* Confidence bar */}
-            <View style={{ marginTop: spacing.md }}>
+                {/* Confidence bar */}
+                <View style={{ marginTop: spacing.md }}>
               <View style={s.confRow}>
                 <Text style={s.confLabel}>Keyakinan Model</Text>
                 <Text style={[s.confLabel, { color: colors.accent, fontWeight: "700" }]}>
@@ -313,7 +354,7 @@ export default function Insights() {
               <View style={s.confTrack}>
                 <View style={[s.confFill, { width: `${adv.confidence * 100}%` }]} />
               </View>
-            </View>
+                </View>
 
             {/* Forecast range + split + gain, shown when the decision engine responded */}
             {adv.forecast_lower != null && adv.forecast_upper != null && (
@@ -360,10 +401,12 @@ export default function Insights() {
               </TouchableOpacity>
             )}
 
-            <Text style={s.disclaimer}>
-              Estimasi berbasis data historis & skenario — bukan jaminan keuntungan. Kurs
-              dapat berubah sewaktu-waktu.
-            </Text>
+                <Text style={s.disclaimer}>
+                  Estimasi berbasis data historis & skenario — bukan jaminan keuntungan. Kurs
+                  dapat berubah sewaktu-waktu.
+                </Text>
+              </>
+            )}
           </View>
         )}
       </ScrollView>
@@ -434,8 +477,15 @@ const s = StyleSheet.create({
     backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border,
   },
   riskChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  riskChipDisabled: { opacity: 0.65 },
   riskChipText: { color: colors.textSecondary, fontWeight: "600", fontSize: 12 },
   riskChipTextActive: { color: "#fff" },
+
+  recommendationLoading: {
+    minHeight: 112, alignItems: "center", justifyContent: "center", gap: spacing.sm,
+  },
+  recommendationLoadingTitle: { color: colors.textPrimary, fontWeight: "700", fontSize: 14 },
+  recommendationLoadingText: { color: colors.textSecondary, fontSize: 12, textAlign: "center" },
 
   confRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6 },
   confLabel: { color: colors.textSecondary, fontSize: 13 },
