@@ -3,6 +3,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle, G } from "react-native-svg";
 
 import { FxAdvisory, InsightsApi, RiskPreference, WalletApi } from "@/api/endpoints";
 import { colors, radius, spacing } from "@/theme/colors";
@@ -24,6 +25,63 @@ const CCY_USAGE = [
   { label: "SGD", pct: 18, color: "#16A34A" },
   { label: "MYR", pct: 7, color: "#F97316" },
 ];
+
+function CurrencyUsageDonut() {
+  const size = 140;
+  const center = size / 2;
+  const strokeWidth = 16;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  let accumulatedPercent = 0;
+
+  return (
+    <View
+      style={[s.donutWrap, { width: size, height: size }]}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel="Komposisi transaksi valas: USD 55 persen, EUR 20 persen, SGD 18 persen, dan MYR 7 persen"
+    >
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <Circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke="#E8EDF5"
+          strokeWidth={strokeWidth}
+        />
+        <G rotation="-90" origin={`${center}, ${center}`}>
+          {CCY_USAGE.map((currency) => {
+            const segmentLength = (currency.pct / 100) * circumference;
+            const offset = -((accumulatedPercent / 100) * circumference);
+            accumulatedPercent += currency.pct;
+            // Rounded caps add one stroke width to the visible arc; subtract it
+            // so adjacent currencies retain a small, crisp visual gap.
+            const visibleLength = Math.max(segmentLength - strokeWidth - 3, 0);
+            return (
+              <Circle
+                key={currency.label}
+                cx={center}
+                cy={center}
+                r={radius}
+                fill="none"
+                stroke={currency.color}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                strokeDasharray={`${visibleLength} ${circumference - visibleLength}`}
+                strokeDashoffset={offset}
+              />
+            );
+          })}
+        </G>
+      </Svg>
+      <View style={s.donutCenter}>
+        <Text style={s.donutCenterValue}>100%</Text>
+        <Text style={s.donutCenterLabel}>transaksi valas</Text>
+      </View>
+    </View>
+  );
+}
 
 const ACTION_META: Record<string, { text: string; bg: string }> = {
   CONVERT_NOW: { text: "Konversi Sekarang", bg: colors.primary },
@@ -132,23 +190,12 @@ export default function Insights() {
 
         {/* ── Currency donut ── */}
         <View style={s.card}>
-          <Text style={s.cardTitle}>Penggunaan Mata Uang</Text>
+          <Text style={[s.cardTitle, { marginBottom: 4 }]}>Penggunaan Mata Uang</Text>
+          <Text style={s.chartSubtitle}>
+            Proporsi nilai transaksi valas per mata uang (data demo)
+          </Text>
           <View style={s.donutRow}>
-            <View style={s.donutWrap}>
-              <View style={s.donutOuter}>
-                <View style={s.donutInner} />
-                <View style={[s.donutArc, { borderColor: "#2563EB" }]} />
-              </View>
-              <View style={[StyleSheet.absoluteFill, s.donutOuter, { borderColor: "#7C3AED", opacity: 0.8,
-                transform: [{ rotate: "198deg" }] }]} />
-              <View style={[StyleSheet.absoluteFill, s.donutOuter, { borderColor: "#16A34A", opacity: 0.8,
-                transform: [{ rotate: "270deg" }] }]} />
-              <View style={[StyleSheet.absoluteFill, s.donutOuter, { borderColor: "#F97316", opacity: 0.9,
-                transform: [{ rotate: "334.8deg" }] }]} />
-              <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}>
-                <View style={s.donutHole} />
-              </View>
-            </View>
+            <CurrencyUsageDonut />
 
             <View style={s.donutLegend}>
               {CCY_USAGE.map((c) => (
@@ -285,6 +332,10 @@ const s = StyleSheet.create({
     padding: spacing.md, borderWidth: 1, borderColor: colors.border,
   },
   cardTitle: { fontWeight: "700", color: colors.textPrimary, marginBottom: spacing.md },
+  chartSubtitle: {
+    color: colors.textSecondary, fontSize: 12, lineHeight: 18,
+    marginBottom: spacing.md,
+  },
 
   barChart: { flexDirection: "row", gap: 8, height: 120, alignItems: "flex-end" },
   barCol: { flex: 1, alignItems: "center", gap: 4 },
@@ -293,14 +344,17 @@ const s = StyleSheet.create({
   barLabel: { color: colors.textSecondary, fontSize: 11 },
 
   donutRow: { flexDirection: "row", alignItems: "center", gap: spacing.lg },
-  donutWrap: { width: 110, height: 110 },
-  donutOuter: {
-    width: 110, height: 110, borderRadius: 55,
-    borderWidth: 20, borderColor: "#2563EB",
+  donutWrap: { position: "relative", alignItems: "center", justifyContent: "center" },
+  donutCenter: {
+    position: "absolute",
+    width: 76, height: 76, borderRadius: 38,
+    backgroundColor: colors.card, alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: colors.border,
   },
-  donutInner: { ...StyleSheet.absoluteFillObject, borderRadius: 55 },
-  donutArc: { width: 110, height: 110, borderRadius: 55, borderWidth: 20 },
-  donutHole: { width: 70, height: 70, borderRadius: 35, backgroundColor: colors.card },
+  donutCenterValue: { color: colors.textPrimary, fontWeight: "800", fontSize: 17 },
+  donutCenterLabel: {
+    color: colors.textSecondary, fontSize: 9, textAlign: "center", marginTop: 1,
+  },
   donutLegend: { flex: 1, gap: 8 },
   legendRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   legendDot: { width: 10, height: 10, borderRadius: 5 },
