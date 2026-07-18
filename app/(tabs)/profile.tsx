@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Button, Card } from "@/components/ui";
+import { Card } from "@/components/ui";
 import { useAuth } from "@/store/auth";
 import { colors, radius, spacing } from "@/theme/colors";
 
@@ -56,7 +56,15 @@ export default function Profile() {
           ))}
         </Card>
 
-        <Button title="Keluar" variant="outline" onPress={logout} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Keluar dari akun"
+          onPress={logout}
+          style={({ pressed }) => [styles.logoutButton, pressed && styles.logoutButtonPressed]}
+        >
+          <Ionicons name="log-out-outline" size={20} color="#fff" />
+          <Text style={styles.logoutText}>Keluar</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -78,4 +86,10 @@ const styles = StyleSheet.create({
   menuIcon: { width: 36, height: 36, borderRadius: radius.sm, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" },
   menuTitle: { fontWeight: "600", color: colors.textPrimary },
   menuSub: { color: colors.textSecondary, fontSize: 12 },
+  logoutButton: {
+    height: 52, borderRadius: radius.md, backgroundColor: colors.danger,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm,
+  },
+  logoutButtonPressed: { opacity: 0.82 },
+  logoutText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });
