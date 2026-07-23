@@ -20,3 +20,11 @@ export function tidyDescription(description?: string | null) {
     .replace(/\s*\(fee .*?\)/i, "")
     .trim();
 }
+
+export function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(diff / 3_600_000);
+  if (h < 1) return `${Math.floor(diff / 60_000)}m lalu`;
+  if (h < 24) return `${h}j lalu`;
+  return `${Math.floor(h / 24)}h lalu`;
+}
