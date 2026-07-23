@@ -2,36 +2,40 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import {
-  Animated,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+  KeyboardAvoidingView, Platform,
+  ScrollView, StyleSheet, Text, useWindowDimensions, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 
+import { FormField, PasswordToggle } from "@/components/FormField";
+import { StaggerFadeIn } from "@/components/StaggerFadeIn";
 import { useAuth } from "@/store/auth";
 import { colors, radius, spacing } from "@/theme/colors";
+import { fontSizes } from "@/theme/typography";
+import { scale } from "@/utils/responsive";
+import AnimatedPressable from "@/components/AnimatedPressable";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 type RegisterField = "name" | "email" | "phone" | "password" | "confirmPassword";
 
-function shakeField(value: Animated.Value) {
-  value.setValue(0);
-  Animated.sequence([
-    Animated.timing(value, { toValue: -10, duration: 55, useNativeDriver: true }),
-    Animated.timing(value, { toValue: 10, duration: 55, useNativeDriver: true }),
-    Animated.timing(value, { toValue: -7, duration: 55, useNativeDriver: true }),
-    Animated.timing(value, { toValue: 7, duration: 55, useNativeDriver: true }),
-    Animated.timing(value, { toValue: 0, duration: 55, useNativeDriver: true }),
-  ]).start();
+function useShakeField() {
+  const translateX = useSharedValue(0);
+  const shake = () => {
+    translateX.value = withSequence(
+      withTiming(-10, { duration: 55 }),
+      withTiming(10, { duration: 55 }),
+      withTiming(-7, { duration: 55 }),
+      withTiming(7, { duration: 55 }),
+      withTiming(0, { duration: 55 }),
+    );
+  };
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
+  return { shake, animatedStyle };
 }
 
 export default function Register() {
+  const { width: screenWidth } = useWindowDimensions();
   const { register } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -42,19 +46,9 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invalidField, setInvalidField] = useState<RegisterField | null>(null);
-  const nameShake = useRef(new Animated.Value(0)).current;
-  const emailShake = useRef(new Animated.Value(0)).current;
-  const phoneShake = useRef(new Animated.Value(0)).current;
-  const passwordShake = useRef(new Animated.Value(0)).current;
-  const confirmPasswordShake = useRef(new Animated.Value(0)).current;
+  const formShake = useShakeField();
+  const btnIconSize = scale(18, screenWidth);
 
-  const shakeValues: Record<RegisterField, Animated.Value> = {
-    name: nameShake,
-    email: emailShake,
-    phone: phoneShake,
-    password: passwordShake,
-    confirmPassword: confirmPasswordShake,
-  };
   const passwordChecks = [
     password.length >= 12,
     /[a-z]/.test(password) && /[A-Z]/.test(password),
@@ -77,7 +71,7 @@ export default function Register() {
   function rejectRegistration(message: string, field?: RegisterField) {
     setError(message);
     setInvalidField(field ?? null);
-    if (field) shakeField(shakeValues[field]);
+    if (field) formShake.shake();
   }
 
   async function onSubmit() {
@@ -150,183 +144,166 @@ export default function Register() {
 
   return (
     <SafeAreaView style={s.safe}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={s.flex}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={s.flex}>
         <ScrollView
           contentContainerStyle={s.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <View style={s.form}>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Kembali ke halaman login"
-              onPress={() => router.back()}
-              style={s.backButton}
-            >
-              <Ionicons name="arrow-back" size={21} color={colors.textPrimary} />
-            </TouchableOpacity>
+            <StaggerFadeIn index={0}>
+              <AnimatedPressable
+                accessibilityRole="button"
+                accessibilityLabel="Kembali ke halaman login"
+                onPress={() => router.back()}
+                style={s.backButton}
+              >
+                <Ionicons name="arrow-back" size={21} color={colors.textPrimary} />
+              </AnimatedPressable>
 
-            <View style={s.logoWrap}>
-              <View style={s.logoBox}>
-                <Ionicons name="person-add" size={27} color="#fff" />
-              </View>
-            </View>
-
-            <Text style={s.title}>Buat Akun NusaWallet</Text>
-            <Text style={s.subtitle}>Daftar sekali untuk mulai mengelola keuangan Anda</Text>
-
-            {error && (
-              <View style={s.errorBox} accessibilityRole="alert">
-                <Ionicons name="alert-circle" size={20} color={colors.danger} />
-                <View style={s.errorContent}>
-                  <Text style={s.errorTitle}>Registrasi gagal</Text>
-                  <Text style={s.errorText}>{error}</Text>
+              <View style={s.logoWrap}>
+                <View style={s.logoBox}>
+                  <Ionicons name="person-add" size={27} color="#fff" />
                 </View>
               </View>
+
+              <Text style={s.title}>Buat Akun NusaWallet</Text>
+              <Text style={s.subtitle}>Daftar sekali untuk mulai mengelola keuangan Anda</Text>
+            </StaggerFadeIn>
+
+            {error && (
+              <StaggerFadeIn index={1}>
+                <View style={s.errorBox} accessibilityRole="alert">
+                  <Ionicons name="alert-circle" size={20} color={colors.danger} />
+                  <View style={s.errorContent}>
+                    <Text style={s.errorTitle}>Registrasi gagal</Text>
+                    <Text style={s.errorText}>{error}</Text>
+                  </View>
+                </View>
+              </StaggerFadeIn>
             )}
 
-            <Animated.View style={{ transform: [{ translateX: nameShake }] }}>
-              <View style={[s.inputWrap, invalidField === "name" && s.inputError]}>
-                <Ionicons name="person-outline" size={18} color={colors.textSecondary} style={s.inputIcon} />
-                <TextInput
+            <StaggerFadeIn index={2}>
+              <Animated.View style={formShake.animatedStyle}>
+                <FormField
+                  icon="person-outline"
                   value={fullName}
                   onChangeText={(value) => { setFullName(value); clearError("name"); }}
-                  style={s.input}
                   placeholder="Nama lengkap"
-                  placeholderTextColor={colors.textSecondary}
                   autoCapitalize="words"
                   textContentType="name"
+                  error={invalidField === "name"}
                 />
-              </View>
-            </Animated.View>
 
-            <Animated.View style={{ transform: [{ translateX: emailShake }] }}>
-              <View style={[s.inputWrap, invalidField === "email" && s.inputError]}>
-                <Ionicons name="mail-outline" size={18} color={colors.textSecondary} style={s.inputIcon} />
-                <TextInput
+                <FormField
+                  icon="mail-outline"
                   value={email}
                   onChangeText={(value) => { setEmail(value); clearError("email"); }}
-                  style={s.input}
                   placeholder="Email"
-                  placeholderTextColor={colors.textSecondary}
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="email-address"
                   textContentType="emailAddress"
+                  error={invalidField === "email"}
                 />
-              </View>
-            </Animated.View>
 
-            <Animated.View style={{ transform: [{ translateX: phoneShake }] }}>
-              <View style={[s.inputWrap, invalidField === "phone" && s.inputError]}>
-                <Ionicons name="call-outline" size={18} color={colors.textSecondary} style={s.inputIcon} />
-                <TextInput
+                <FormField
+                  icon="call-outline"
                   value={phone}
                   onChangeText={(value) => { setPhone(value.replace(/\D/g, "")); clearError("phone"); }}
-                  style={s.input}
                   placeholder="Nomor telepon"
-                  placeholderTextColor={colors.textSecondary}
                   keyboardType="number-pad"
                   inputMode="numeric"
                   maxLength={13}
                   textContentType="telephoneNumber"
+                  error={invalidField === "phone"}
                 />
-              </View>
-            </Animated.View>
 
-            <Animated.View style={{ transform: [{ translateX: passwordShake }] }}>
-              <View style={[s.inputWrap, invalidField === "password" && s.inputError]}>
-                <Ionicons name="lock-closed-outline" size={18} color={colors.textSecondary} style={s.inputIcon} />
-                <TextInput
+                <FormField
+                  icon="lock-closed-outline"
                   value={password}
                   onChangeText={(value) => { setPassword(value); clearError("password"); }}
-                  style={s.input}
                   placeholder="Kata sandi"
-                  placeholderTextColor={colors.textSecondary}
                   secureTextEntry={!showPass}
                   textContentType="newPassword"
+                  error={invalidField === "password"}
+                  rightElement={<PasswordToggle show={showPass} onToggle={() => setShowPass(!showPass)} />}
                 />
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel={showPass ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
-                  onPress={() => setShowPass(!showPass)}
-                  style={s.eyeButton}
-                >
-                  <Ionicons
-                    name={showPass ? "eye-off-outline" : "eye-outline"}
-                    size={18}
-                    color={colors.textSecondary}
-                  />
-                </TouchableOpacity>
-              </View>
-            </Animated.View>
+              </Animated.View>
+            </StaggerFadeIn>
 
-            <View style={s.strengthWrap}>
-              <View style={s.strengthHeader}>
-                <Text style={s.strengthLabel}>Kekuatan password</Text>
-                <Text style={[s.strengthValue, { color: passwordStrengthColor }]}>
-                  {password ? passwordStrength : "Belum diisi"}
+            <StaggerFadeIn index={3}>
+              <View style={s.strengthWrap}>
+                <View style={s.strengthHeader}>
+                  <Text style={s.strengthLabel}>Kekuatan password</Text>
+                  <Text style={[s.strengthValue, { color: passwordStrengthColor }]}>
+                    {password ? passwordStrength : "Belum diisi"}
+                  </Text>
+                </View>
+                <View style={s.strengthBars}>
+                  {[0, 1, 2, 3].map((index) => (
+                    <View
+                      key={index}
+                      style={[
+                        s.strengthBar,
+                        index < passwordScore && { backgroundColor: passwordStrengthColor },
+                      ]}
+                    />
+                  ))}
+                </View>
+                <Text style={s.passwordHint}>
+                  Password kuat: minimal 12 karakter, huruf besar-kecil, angka, dan simbol.
                 </Text>
               </View>
-              <View style={s.strengthBars}>
-                {[0, 1, 2, 3].map((index) => (
-                  <View
-                    key={index}
-                    style={[
-                      s.strengthBar,
-                      index < passwordScore && { backgroundColor: passwordStrengthColor },
-                    ]}
-                  />
-                ))}
-              </View>
-              <Text style={s.passwordHint}>
-                Password kuat: minimal 12 karakter, huruf besar-kecil, angka, dan simbol.
-              </Text>
-            </View>
+            </StaggerFadeIn>
 
-            <Animated.View style={{ transform: [{ translateX: confirmPasswordShake }] }}>
-              <View style={[s.inputWrap, invalidField === "confirmPassword" && s.inputError]}>
-                <Ionicons name="shield-checkmark-outline" size={18} color={colors.textSecondary} style={s.inputIcon} />
-                <TextInput
+            <StaggerFadeIn index={4}>
+              <Animated.View style={formShake.animatedStyle}>
+                <FormField
+                  icon="shield-checkmark-outline"
                   value={confirmPassword}
                   onChangeText={(value) => { setConfirmPassword(value); clearError("confirmPassword"); }}
-                  style={s.input}
                   placeholder="Ulangi kata sandi"
-                  placeholderTextColor={colors.textSecondary}
                   secureTextEntry={!showPass}
                   textContentType="newPassword"
+                  error={invalidField === "confirmPassword"}
                   onSubmitEditing={() => void onSubmit()}
                 />
+              </Animated.View>
+            </StaggerFadeIn>
+
+            <StaggerFadeIn index={5}>
+              <Text style={s.termsText}>
+                Dengan mendaftar, Anda menyetujui ketentuan penggunaan dan kebijakan privasi NusaWallet.
+              </Text>
+            </StaggerFadeIn>
+
+            <StaggerFadeIn index={6}>
+              <AnimatedPressable
+                accessibilityRole="button"
+                style={[s.btnPrimary, loading && { opacity: 0.65 }]}
+                onPress={() => void onSubmit()}
+                disabled={loading}
+              >
+                <Text style={s.btnPrimaryText}>{loading ? "Mendaftarkan..." : "Daftar Sekarang"}</Text>
+              </AnimatedPressable>
+            </StaggerFadeIn>
+
+            <StaggerFadeIn index={7}>
+              <View style={s.loginRow}>
+                <Text style={s.loginPrompt}>Sudah punya akun?</Text>
+                <AnimatedPressable onPress={() => router.replace("/(auth)/login")} hitSlop={8}>
+                  <Text style={s.loginLink}>Masuk</Text>
+                </AnimatedPressable>
               </View>
-            </Animated.View>
+            </StaggerFadeIn>
 
-            <Text style={s.termsText}>
-              Dengan mendaftar, Anda menyetujui ketentuan penggunaan dan kebijakan privasi NusaWallet.
-            </Text>
-
-            <TouchableOpacity
-              accessibilityRole="button"
-              style={[s.btnPrimary, loading && s.btnDisabled]}
-              onPress={() => void onSubmit()}
-              disabled={loading}
-            >
-              <Text style={s.btnPrimaryText}>{loading ? "Mendaftarkan..." : "Daftar Sekarang"}</Text>
-            </TouchableOpacity>
-
-            <View style={s.loginRow}>
-              <Text style={s.loginPrompt}>Sudah punya akun?</Text>
-              <TouchableOpacity onPress={() => router.replace("/(auth)/login")} hitSlop={8}>
-                <Text style={s.loginLink}>Masuk</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={s.securityRow}>
-              <Ionicons name="lock-closed-outline" size={13} color={colors.textSecondary} />
-              <Text style={s.securityText}>Data Anda dilindungi dengan enkripsi end-to-end</Text>
-            </View>
+            <StaggerFadeIn index={8}>
+              <View style={s.securityRow}>
+                <Ionicons name="lock-closed-outline" size={13} color={colors.textSecondary} />
+                <Text style={s.securityText}>Data Anda dilindungi dengan enkripsi end-to-end</Text>
+              </View>
+            </StaggerFadeIn>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -352,14 +329,14 @@ const s = StyleSheet.create({
   },
   logoWrap: { alignItems: "center", marginBottom: spacing.md },
   logoBox: {
-    width: 64, height: 64, borderRadius: 16,
+    width: 64, height: 64, borderRadius: radius.md,
     backgroundColor: colors.accent,
     alignItems: "center", justifyContent: "center",
   },
-  title: { fontSize: 24, fontWeight: "700", textAlign: "center", color: colors.textPrimary },
+  title: { fontSize: fontSizes.h2, fontWeight: "700", textAlign: "center", color: colors.textPrimary },
   subtitle: {
     textAlign: "center", color: colors.textSecondary,
-    marginTop: 4, marginBottom: spacing.lg, lineHeight: 20,
+    marginTop: 4, marginBottom: spacing.lg, lineHeight: 22, fontSize: fontSizes.body,
   },
   errorBox: {
     flexDirection: "row", alignItems: "flex-start", gap: spacing.sm,
@@ -367,32 +344,20 @@ const s = StyleSheet.create({
     borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.md,
   },
   errorContent: { flex: 1 },
-  errorTitle: { color: colors.danger, fontSize: 14, fontWeight: "700" },
-  errorText: { color: colors.danger, fontSize: 13, lineHeight: 18, marginTop: 2 },
-  inputWrap: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
-    borderRadius: radius.md, marginBottom: spacing.sm,
-  },
-  inputError: { borderColor: colors.danger, borderWidth: 1.5, backgroundColor: "#FFF7F7" },
-  inputIcon: { paddingLeft: spacing.md },
-  input: {
-    flex: 1, height: 52, paddingHorizontal: spacing.sm,
-    color: colors.textPrimary, fontSize: 15,
-  },
-  eyeButton: { paddingHorizontal: spacing.md, height: 52, justifyContent: "center" },
+  errorTitle: { color: colors.danger, fontSize: fontSizes.bodyAlt, fontWeight: "700" },
+  errorText: { color: colors.danger, fontSize: fontSizes.caption, lineHeight: 18, marginTop: 2 },
   strengthWrap: { marginTop: -2, marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
   strengthHeader: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
     marginBottom: 6,
   },
-  strengthLabel: { color: colors.textSecondary, fontSize: 12 },
-  strengthValue: { fontSize: 12, fontWeight: "700" },
+  strengthLabel: { color: colors.textSecondary, fontSize: fontSizes.label },
+  strengthValue: { fontSize: fontSizes.label, fontWeight: "700" },
   strengthBars: { flexDirection: "row", gap: 5 },
   strengthBar: { flex: 1, height: 4, borderRadius: 4, backgroundColor: colors.border },
-  passwordHint: { color: colors.textSecondary, fontSize: 11, lineHeight: 16, marginTop: 6 },
+  passwordHint: { color: colors.textSecondary, fontSize: fontSizes.small, lineHeight: 16, marginTop: 6 },
   termsText: {
-    color: colors.textSecondary, fontSize: 12, lineHeight: 18,
+    color: colors.textSecondary, fontSize: fontSizes.label, lineHeight: 18,
     textAlign: "center", marginTop: spacing.xs,
   },
   btnPrimary: {
@@ -400,17 +365,16 @@ const s = StyleSheet.create({
     borderRadius: radius.md, alignItems: "center", justifyContent: "center",
     marginTop: spacing.md,
   },
-  btnDisabled: { opacity: 0.65 },
-  btnPrimaryText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  btnPrimaryText: { color: "#fff", fontSize: fontSizes.h6, fontWeight: "700" },
   loginRow: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     flexWrap: "wrap", gap: 5, marginTop: spacing.md,
   },
-  loginPrompt: { color: colors.textSecondary, fontSize: 13 },
-  loginLink: { color: colors.accent, fontSize: 13, fontWeight: "700" },
+  loginPrompt: { color: colors.textSecondary, fontSize: fontSizes.caption },
+  loginLink: { color: colors.accent, fontSize: fontSizes.caption, fontWeight: "700" },
   securityRow: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 6, marginTop: spacing.lg,
   },
-  securityText: { color: colors.textSecondary, fontSize: 12, textAlign: "center" },
+  securityText: { color: colors.textSecondary, fontSize: fontSizes.label, textAlign: "center" },
 });
