@@ -14,6 +14,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.nusawallet.app",
       "adaptiveIcon": {
         "backgroundColor": "#0E2148"
       }
