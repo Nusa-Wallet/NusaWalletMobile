@@ -4,14 +4,21 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   Alert, KeyboardAvoidingView, Platform,
-  ScrollView, Share, StyleSheet, Text,
-  TextInput, TouchableOpacity, View,
+  RefreshControl, ScrollView, Share, StyleSheet, Text,
+  TextInput, useWindowDimensions, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { FraudResult, PaymentApi, RiskLevel, WalletApi } from "@/api/endpoints";
 import { API_URL } from "@/api/client";
+import { Card } from "@/components/ui";
+import { EmptyState } from "@/components/EmptyState";
+import { Skeleton, SkeletonCard } from "@/components/Skeleton";
+import { StaggerFadeIn } from "@/components/StaggerFadeIn";
 import { colors, radius, spacing } from "@/theme/colors";
+import { fontSizes } from "@/theme/typography";
+import { scale } from "@/utils/responsive";
+import AnimatedPressable from "@/components/AnimatedPressable";
 
 const RISK_COLOR: Record<RiskLevel, string> = {
   LOW: colors.success,
@@ -22,7 +29,7 @@ const RISK_COLOR: Record<RiskLevel, string> = {
 const CCYS = ["USD", "SGD", "EUR", "MYR"];
 const SYMBOLS: Record<string, string> = { USD: "$", SGD: "S$", EUR: "€", MYR: "RM" };
 const FALLBACK_IDR_RATES: Record<string, number> = { USD: 15850, SGD: 12050, EUR: 17200, MYR: 3450 };
-const FEE_RATE = 0.005; // 0.5%
+const FEE_RATE = 0.005;
 
 interface LinkData { code: string; url: string }
 
@@ -39,6 +46,7 @@ function sanitizeAmountInput(value: string) {
 }
 
 export default function Receive() {
+  const { width: screenWidth } = useWindowDimensions();
   const [currency, setCurrency] = useState("USD");
   const [amount, setAmount] = useState("500");
   const [linkData, setLinkData] = useState<LinkData | null>(null);
@@ -48,11 +56,23 @@ export default function Receive() {
   const [fraud, setFraud] = useState<FraudResult | null>(null);
   const [paying, setPaying] = useState(false);
   const [rates, setRates] = useState<Record<string, number>>(FALLBACK_IDR_RATES);
+  const [ratesLoading, setRatesLoading] = useState(true);
+  const [ratesRefreshing, setRatesRefreshing] = useState(false);
+
+  const chipIconSize = scale(16, screenWidth);
+
+  async function fetchRates(isRefresh = false) {
+    if (isRefresh) setRatesRefreshing(true);
+    try {
+      const { data } = await WalletApi.rates();
+      setRates(data);
+    } catch { /* use fallback */ }
+    setRatesLoading(false);
+    if (isRefresh) setRatesRefreshing(false);
+  }
 
   useFocusEffect(
-    useCallback(() => {
-      WalletApi.rates().then((r) => setRates(r.data)).catch(() => {});
-    }, []),
+    useCallback(() => { fetchRates(); }, []),
   );
 
   const sym = SYMBOLS[currency] ?? "";
@@ -90,7 +110,6 @@ export default function Receive() {
     await Share.share({ message: `Bayar saya via NusaWallet: ${displayUrl}` });
   }
 
-  // Sandbox demo: simulate an incoming payment so the fraud engine's result is visible.
   async function simulatePayment(scenario: "normal" | "suspicious") {
     if (!linkData) return;
     setPaying(true);
@@ -117,7 +136,7 @@ export default function Receive() {
     } catch (e: any) {
       const detail = e?.response?.data?.detail;
       if (detail && typeof detail === "object") {
-        setFraud(detail as FraudResult); // held for review (402 REVIEW_REQUIRED)
+        setFraud(detail as FraudResult);
         setLinkConsumed(true);
       } else {
         Alert.alert("Gagal", "Simulasi pembayaran gagal. Buat link baru lalu coba lagi.");
@@ -127,161 +146,200 @@ export default function Receive() {
     }
   }
 
+  if (ratesLoading) {
+    return (
+      <SafeAreaView style={s.safe} edges={["top"]}>
+        <View style={s.header}>
+          <View style={{ width: 24 }} />
+          <Text style={s.headerTitle}>Terima Pembayaran</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={s.scroll}>
+          <SkeletonCard />
+          <SkeletonCard />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-
-          {/* Header */}
-          <View style={s.header}>
-            <View style={{ width: 24 }} />
-            <Text style={s.headerTitle}>Terima Pembayaran</Text>
-            <View style={{ width: 24 }} />
-          </View>
-
-          {/* Input card */}
-          <View style={s.card}>
-            <Text style={s.label}>Mata Uang</Text>
-            <View style={s.ccyRow}>
-              {CCYS.map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  onPress={() => {
-                    setCurrency(c);
-                    setLinkData(null);
-                    setLinkConsumed(false);
-                    setNotice(null);
-                  }}
-                  style={[s.chip, currency === c && s.chipActive]}
-                >
-                  <Text style={[s.chipText, currency === c && s.chipTextActive]}>{c}</Text>
-                </TouchableOpacity>
-              ))}
+        <ScrollView
+          contentContainerStyle={s.scroll}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={<RefreshControl refreshing={ratesRefreshing} onRefresh={() => fetchRates(true)} tintColor={colors.accent} />}
+        >
+          <StaggerFadeIn index={0}>
+            <View style={s.header}>
+              <View style={{ width: 24 }} />
+              <Text style={s.headerTitle}>Terima Pembayaran</Text>
+              <View style={{ width: 24 }} />
             </View>
+          </StaggerFadeIn>
 
-            <Text style={[s.label, { marginTop: spacing.md }]}>Jumlah</Text>
-            <TextInput
-              style={s.amtInput}
-              value={amount}
-              onChangeText={(v) => {
-                setAmount(sanitizeAmountInput(v));
-                setLinkData(null);
-                setLinkConsumed(false);
-                setNotice(null);
-              }}
-              keyboardType="decimal-pad"
-              inputMode="decimal"
-              placeholder="0"
-              placeholderTextColor={colors.textSecondary}
-            />
-          </View>
-
-          {/* Fee breakdown card */}
-          {amt > 0 && (
-            <View style={[s.card, { gap: 10 }]}>
-              <Row label="Jumlah" value={`${currency} ${amt.toFixed(2)}`} />
-              <Row label="Biaya" value={`-${sym}${fee.toFixed(2)}`} valueColor="#F59E0B" />
-              <View style={s.divider} />
-              <View style={s.receivedRow}>
-                <Text style={s.receivedLabel}>Diterima</Text>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={s.receivedValue}>{`${currency} ${net.toFixed(2)}`}</Text>
-                  {idrEquiv > 0 && (
-                    <Text style={s.idrEquiv}>≈ Rp {idrEquiv.toLocaleString("id-ID")}</Text>
-                  )}
-                </View>
+          <StaggerFadeIn index={1}>
+            <Card>
+              <Text style={s.label}>Mata Uang</Text>
+              <View style={s.ccyRow}>
+                {CCYS.map((c) => (
+                  <AnimatedPressable
+                    key={c}
+                    onPress={() => {
+                      setCurrency(c);
+                      setLinkData(null);
+                      setLinkConsumed(false);
+                      setNotice(null);
+                    }}
+                    style={{ flex: 1 }}
+                  >
+                    <View style={[s.chip, currency === c && s.chipActive]}>
+                      <Text style={[s.chipText, currency === c && s.chipTextActive]}>{c}</Text>
+                    </View>
+                  </AnimatedPressable>
+                ))}
               </View>
-            </View>
+
+              <Text style={[s.label, { marginTop: spacing.md }]}>Jumlah</Text>
+              <TextInput
+                style={s.amtInput}
+                value={amount}
+                onChangeText={(v) => {
+                  setAmount(sanitizeAmountInput(v));
+                  setLinkData(null);
+                  setLinkConsumed(false);
+                  setNotice(null);
+                }}
+                keyboardType="decimal-pad"
+                inputMode="decimal"
+                placeholder="0"
+                placeholderTextColor={colors.textSecondary}
+              />
+            </Card>
+          </StaggerFadeIn>
+
+          {amt > 0 && (
+            <StaggerFadeIn index={2}>
+              <Card style={{ gap: 10 }}>
+                <Row label="Jumlah" value={`${currency} ${amt.toFixed(2)}`} />
+                <Row label="Biaya" value={`-${sym}${fee.toFixed(2)}`} valueColor={colors.warning} />
+                <View style={s.divider} />
+                <View style={s.receivedRow}>
+                  <Text style={s.receivedLabel}>Diterima</Text>
+                  <View style={{ alignItems: "flex-end" }}>
+                    <Text style={s.receivedValue}>{`${currency} ${net.toFixed(2)}`}</Text>
+                    {idrEquiv > 0 && (
+                      <Text style={s.idrEquiv}>≈ Rp {idrEquiv.toLocaleString("id-ID")}</Text>
+                    )}
+                  </View>
+                </View>
+              </Card>
+            </StaggerFadeIn>
           )}
 
-          {/* Generate button */}
-          <TouchableOpacity style={s.btnPrimary} onPress={generate} disabled={loading}>
-            <Text style={s.btnPrimaryText}>
-              {loading ? "Membuat..." : "Buat Link Pembayaran"}
-            </Text>
-          </TouchableOpacity>
+          <StaggerFadeIn index={3}>
+            <AnimatedPressable style={s.btnPrimary} onPress={generate} disabled={loading}>
+              <Text style={s.btnPrimaryText}>
+                {loading ? "Membuat..." : "Buat Link Pembayaran"}
+              </Text>
+            </AnimatedPressable>
+          </StaggerFadeIn>
 
           {notice && (
-            <View style={s.successNotice} accessibilityRole="alert">
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-              <Text style={s.successNoticeText}>{notice}</Text>
-            </View>
+            <StaggerFadeIn index={4}>
+              <View style={s.successNotice} accessibilityRole="alert">
+                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                <Text style={s.successNoticeText}>{notice}</Text>
+              </View>
+            </StaggerFadeIn>
           )}
 
-          {/* Link result card */}
           {linkData && displayUrl && (
-            <View style={[s.card, { gap: spacing.sm }]}>
-              <Text style={s.label}>Link Pembayaran</Text>
-              <View style={s.linkBox}>
-                <Ionicons name="link-outline" size={16} color={colors.textSecondary} />
-                <Text style={s.linkText} numberOfLines={1}>{displayUrl}</Text>
-              </View>
-              <View style={s.btnRow}>
-                <TouchableOpacity style={[s.actionBtn, { flex: 1 }]} onPress={copy}>
-                  <Ionicons name="copy-outline" size={16} color="#fff" />
-                  <Text style={s.actionBtnText}>Salin Link</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[s.actionBtn, s.actionBtnOutline, { flex: 1 }]} onPress={share}>
-                  <Ionicons name="share-outline" size={16} color={colors.primary} />
-                  <Text style={[s.actionBtnText, { color: colors.primary }]}>Bagikan</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <StaggerFadeIn index={5}>
+              <Card style={{ gap: spacing.sm }}>
+                <Text style={s.label}>Link Pembayaran</Text>
+                <View style={s.linkBox}>
+                  <Ionicons name="link-outline" size={chipIconSize} color={colors.textSecondary} />
+                  <Text style={s.linkText} numberOfLines={1}>{displayUrl}</Text>
+                </View>
+                <View style={s.btnRow}>
+                  <AnimatedPressable style={[s.actionBtn, { flex: 1 }]} onPress={copy}>
+                    <Ionicons name="copy-outline" size={16} color="#fff" />
+                    <Text style={s.actionBtnText}>Salin Link</Text>
+                  </AnimatedPressable>
+                  <AnimatedPressable style={[s.actionBtn, s.actionBtnOutline, { flex: 1 }]} onPress={share}>
+                    <Ionicons name="share-outline" size={16} color={colors.primary} />
+                    <Text style={[s.actionBtnText, { color: colors.primary }]}>Bagikan</Text>
+                  </AnimatedPressable>
+                </View>
+              </Card>
+            </StaggerFadeIn>
           )}
 
-          {/* Fraud detection demo (sandbox) */}
           {linkData && (
-            <View style={[s.card, { gap: spacing.sm }]}>
-              <Text style={s.label}>Uji Deteksi Fraud (demo sandbox)</Text>
-              <Text style={s.sandboxHint}>
-                Setiap skenario memakai link sekali pakai. Link baru dibuat otomatis saat diperlukan.
-              </Text>
-              <View style={s.btnRow}>
-                <TouchableOpacity
-                  style={[s.actionBtn, s.actionBtnOutline, { flex: 1 }]}
-                  onPress={() => simulatePayment("normal")}
-                  disabled={paying}
-                >
-                  <Text style={[s.actionBtnText, { color: colors.primary }]}>Pembayaran Normal</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[s.actionBtn, s.actionBtnOutline, { flex: 1 }]}
-                  onPress={() => simulatePayment("suspicious")}
-                  disabled={paying}
-                >
-                  <Text style={[s.actionBtnText, { color: colors.danger }]}>Mencurigakan</Text>
-                </TouchableOpacity>
-              </View>
-
-              {fraud && (
-                <View style={s.fraudResult}>
-                  <View style={s.fraudHeader}>
-                    <Ionicons
-                      name={fraud.status === "REVIEW_REQUIRED" ? "warning" : "shield-checkmark"}
-                      size={18}
-                      color={RISK_COLOR[fraud.risk_level ?? "LOW"]}
-                    />
-                    <Text style={s.fraudTitle}>
-                      {fraud.status === "REVIEW_REQUIRED"
-                        ? "Ditahan untuk ditinjau"
-                        : "Pembayaran diterima"}
-                    </Text>
-                    <View style={[s.riskBadge, { backgroundColor: RISK_COLOR[fraud.risk_level ?? "LOW"] }]}>
-                      <Text style={s.riskBadgeText}>Risiko {fraud.risk_level ?? "LOW"}</Text>
-                    </View>
-                  </View>
-                  {(fraud.factors ?? []).slice(0, 4).map((f, i) => (
-                    <View key={i} style={s.factorRow}>
-                      <View style={s.factorDot} />
-                      <Text style={s.factorText}>{f}</Text>
-                    </View>
-                  ))}
-                  <Text style={s.fraudNote}>
-                    Skor risiko dihitung server-side. Ini simulasi sandbox — bukan transaksi nyata.
-                  </Text>
+            <StaggerFadeIn index={6}>
+              <Card style={{ gap: spacing.sm }}>
+                <Text style={s.label}>Uji Deteksi Fraud (demo sandbox)</Text>
+                <Text style={s.sandboxHint}>
+                  Setiap skenario memakai link sekali pakai. Link baru dibuat otomatis saat diperlukan.
+                </Text>
+                <View style={s.btnRow}>
+                  <AnimatedPressable
+                    style={[s.actionBtn, s.actionBtnOutline, { flex: 1 }]}
+                    onPress={() => simulatePayment("normal")}
+                    disabled={paying}
+                  >
+                    <Text style={[s.actionBtnText, { color: colors.primary }]}>Pembayaran Normal</Text>
+                  </AnimatedPressable>
+                  <AnimatedPressable
+                    style={[s.actionBtn, s.actionBtnOutline, { flex: 1 }]}
+                    onPress={() => simulatePayment("suspicious")}
+                    disabled={paying}
+                  >
+                    <Text style={[s.actionBtnText, { color: colors.danger }]}>Mencurigakan</Text>
+                  </AnimatedPressable>
                 </View>
-              )}
-            </View>
+
+                {fraud && (
+                  <View style={s.fraudResult}>
+                    <View style={s.fraudHeader}>
+                      <Ionicons
+                        name={fraud.status === "REVIEW_REQUIRED" ? "warning" : "shield-checkmark"}
+                        size={18}
+                        color={RISK_COLOR[fraud.risk_level ?? "LOW"]}
+                      />
+                      <Text style={s.fraudTitle}>
+                        {fraud.status === "REVIEW_REQUIRED"
+                          ? "Ditahan untuk ditinjau"
+                          : "Pembayaran diterima"}
+                      </Text>
+                      <View style={[s.riskBadge, { backgroundColor: RISK_COLOR[fraud.risk_level ?? "LOW"] }]}>
+                        <Text style={s.riskBadgeText}>Risiko {fraud.risk_level ?? "LOW"}</Text>
+                      </View>
+                    </View>
+                    {(fraud.factors ?? []).slice(0, 4).map((f, i) => (
+                      <View key={i} style={s.factorRow}>
+                        <View style={s.factorDot} />
+                        <Text style={s.factorText}>{f}</Text>
+                      </View>
+                    ))}
+                    <Text style={s.fraudNote}>
+                      Skor risiko dihitung server-side. Ini simulasi sandbox — bukan transaksi nyata.
+                    </Text>
+                  </View>
+                )}
+              </Card>
+            </StaggerFadeIn>
+          )}
+
+          {!linkData && (
+            <StaggerFadeIn index={7}>
+              <EmptyState
+                icon="link-outline"
+                title="Buat link pembayaran"
+                description="Pilih mata uang, masukkan jumlah, lalu buat link untuk dibagikan."
+              />
+            </StaggerFadeIn>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -292,8 +350,8 @@ export default function Receive() {
 function Row({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
   return (
     <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-      <Text style={{ color: colors.textSecondary, fontSize: 14 }}>{label}</Text>
-      <Text style={{ color: valueColor ?? colors.textPrimary, fontWeight: "600", fontSize: 14 }}>{value}</Text>
+      <Text style={{ color: colors.textSecondary, fontSize: fontSizes.bodyAlt }}>{label}</Text>
+      <Text style={{ color: valueColor ?? colors.textPrimary, fontWeight: "600", fontSize: fontSizes.bodyAlt }}>{value}</Text>
     </View>
   );
 }
@@ -302,12 +360,8 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: 40 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: colors.textPrimary },
-  card: {
-    backgroundColor: colors.card, borderRadius: radius.lg,
-    padding: spacing.md, borderWidth: 1, borderColor: colors.border,
-  },
-  label: { fontSize: 13, color: colors.textSecondary, marginBottom: 8, fontWeight: "500" },
+  headerTitle: { fontSize: fontSizes.h4, fontWeight: "700", color: colors.textPrimary },
+  label: { fontSize: fontSizes.caption, color: colors.textSecondary, marginBottom: 8, fontWeight: "500" },
   ccyRow: { flexDirection: "row", gap: spacing.sm },
   chip: {
     flex: 1, height: 40, borderRadius: radius.md,
@@ -315,54 +369,53 @@ const s = StyleSheet.create({
     backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border,
   },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { color: colors.textSecondary, fontWeight: "600", fontSize: 14 },
+  chipText: { color: colors.textSecondary, fontWeight: "600", fontSize: fontSizes.bodyAlt },
   chipTextActive: { color: "#fff" },
   amtInput: {
-    fontSize: 28, fontWeight: "700", color: colors.textPrimary,
+    fontSize: fontSizes.h2, fontWeight: "700", color: colors.textPrimary,
     borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: 8,
   },
   divider: { height: 1, backgroundColor: colors.border },
   receivedRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  receivedLabel: { fontSize: 14, color: colors.textSecondary },
-  receivedValue: { fontSize: 18, fontWeight: "800", color: "#16A34A" },
-  idrEquiv: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  receivedLabel: { fontSize: fontSizes.bodyAlt, color: colors.textSecondary },
+  receivedValue: { fontSize: fontSizes.h4, fontWeight: "800", color: colors.success },
+  idrEquiv: { fontSize: fontSizes.label, color: colors.textSecondary, marginTop: 2 },
   btnPrimary: {
     backgroundColor: colors.primary, height: 52,
     borderRadius: radius.md, alignItems: "center", justifyContent: "center",
   },
-  btnPrimaryText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  btnPrimaryText: { color: "#fff", fontSize: fontSizes.h6, fontWeight: "700" },
   successNotice: {
     flexDirection: "row", alignItems: "center", gap: spacing.sm,
     backgroundColor: "#F0FDF4", borderWidth: 1, borderColor: "#BBF7D0",
     borderRadius: radius.md, padding: spacing.md,
   },
-  successNoticeText: { flex: 1, color: "#166534", fontSize: 13, lineHeight: 18 },
+  successNoticeText: { flex: 1, color: "#166534", fontSize: fontSizes.caption, lineHeight: 18 },
   linkBox: {
     flexDirection: "row", alignItems: "center", gap: 8,
     backgroundColor: colors.background, borderRadius: radius.sm,
     paddingHorizontal: spacing.sm, paddingVertical: 10,
     borderWidth: 1, borderColor: colors.border,
   },
-  linkText: { color: colors.textSecondary, fontSize: 13, flex: 1 },
+  linkText: { color: colors.textSecondary, fontSize: fontSizes.caption, flex: 1 },
   btnRow: { flexDirection: "row", gap: spacing.sm },
   actionBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 6, height: 44, borderRadius: radius.md, backgroundColor: colors.primary,
   },
   actionBtnOutline: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border },
-  actionBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-
+  actionBtnText: { color: "#fff", fontWeight: "700", fontSize: fontSizes.bodyAlt },
   fraudResult: {
     backgroundColor: colors.background, borderRadius: radius.md,
     padding: spacing.md, gap: spacing.sm,
   },
-  sandboxHint: { color: colors.textSecondary, fontSize: 12, lineHeight: 17 },
+  sandboxHint: { color: colors.textSecondary, fontSize: fontSizes.label, lineHeight: 17 },
   fraudHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  fraudTitle: { flex: 1, fontWeight: "700", color: colors.textPrimary, fontSize: 14 },
+  fraudTitle: { flex: 1, fontWeight: "700", color: colors.textPrimary, fontSize: fontSizes.bodyAlt },
   riskBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
-  riskBadgeText: { color: "#fff", fontWeight: "700", fontSize: 11 },
+  riskBadgeText: { color: "#fff", fontWeight: "700", fontSize: fontSizes.small },
   factorRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   factorDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.danger, marginTop: 6 },
-  factorText: { flex: 1, color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
-  fraudNote: { color: colors.textSecondary, fontSize: 11, fontStyle: "italic", marginTop: 2 },
+  factorText: { flex: 1, color: colors.textSecondary, fontSize: fontSizes.label, lineHeight: 18 },
+  fraudNote: { color: colors.textSecondary, fontSize: fontSizes.small, fontStyle: "italic", marginTop: 2 },
 });
