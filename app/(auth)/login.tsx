@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert, Image, KeyboardAvoidingView, Platform,
@@ -11,8 +11,8 @@ import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } 
 import { FormField, PasswordToggle } from "@/components/FormField";
 import { StaggerFadeIn } from "@/components/StaggerFadeIn";
 import { useAuth } from "@/store/auth";
-import { colors, radius, spacing } from "@/theme/colors";
-import { fontSizes } from "@/theme/typography";
+import { palette, colors, radius, spacing } from "@/theme/colors";
+import { fonts, fontSizes } from "@/theme/typography";
 import { scale } from "@/utils/responsive";
 import AnimatedPressable from "@/components/AnimatedPressable";
 
@@ -35,15 +35,18 @@ function useShake() {
 
 export default function Login() {
   const { width: screenWidth } = useWindowDimensions();
-  const { login } = useAuth();
+  const { login, token, loading: authLoading } = useAuth();
+
+  if (authLoading) return null;
+  if (token) return <Redirect href="/(tabs)" />;
   const { registered, email: registeredEmail } = useLocalSearchParams<{
     registered?: string;
     email?: string;
   }>();
   const [mode, setMode] = useState<Mode>("email");
-  const [email, setEmail] = useState(registeredEmail ?? "demo@nusawallet.id");
-  const [phone, setPhone] = useState("081234567890");
-  const [password, setPassword] = useState(registered === "success" ? "" : "password123");
+  const [email, setEmail] = useState(registeredEmail ?? "");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -278,24 +281,24 @@ const s = StyleSheet.create({
     backgroundColor: colors.accent,
     alignItems: "center", justifyContent: "center",
   },
-  title: { fontSize: fontSizes.h2, fontWeight: "700", textAlign: "center", color: colors.textPrimary },
-  subtitle: { textAlign: "center", color: colors.textSecondary, marginTop: 4, marginBottom: spacing.xl, fontSize: fontSizes.body, lineHeight: 22 },
+  title: { fontSize: fontSizes.h2, fontFamily: fonts.bold, textAlign: "center", color: colors.textPrimary },
+  subtitle: { textAlign: "center", color: colors.textSecondary, marginTop: 4, marginBottom: spacing.xl, fontSize: fontSizes.body, fontFamily: fonts.regular, lineHeight: 22 },
   errorBox: {
     flexDirection: "row", alignItems: "flex-start", gap: spacing.sm,
-    backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA",
+    backgroundColor: palette.red10, borderWidth: 1, borderColor: palette.red10,
     borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.md,
   },
   errorContent: { flex: 1 },
-  errorTitle: { color: colors.danger, fontSize: fontSizes.bodyAlt, fontWeight: "700" },
-  errorText: { color: colors.danger, fontSize: fontSizes.caption, lineHeight: 18, marginTop: 2 },
+  errorTitle: { color: colors.danger, fontSize: fontSizes.bodyAlt, fontFamily: fonts.bold },
+  errorText: { color: colors.danger, fontSize: fontSizes.caption, fontFamily: fonts.regular, lineHeight: 18, marginTop: 2 },
   successBox: {
     flexDirection: "row", alignItems: "flex-start", gap: spacing.sm,
-    backgroundColor: "#F0FDF4", borderWidth: 1, borderColor: "#BBF7D0",
+    backgroundColor: palette.green10, borderWidth: 1, borderColor: palette.green10,
     borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.md,
   },
   successContent: { flex: 1 },
-  successTitle: { color: colors.success, fontSize: fontSizes.bodyAlt, fontWeight: "700" },
-  successText: { color: "#166534", fontSize: fontSizes.caption, lineHeight: 18, marginTop: 2 },
+  successTitle: { color: colors.success, fontSize: fontSizes.bodyAlt, fontFamily: fonts.bold },
+  successText: { color: colors.success, fontSize: fontSizes.caption, fontFamily: fonts.regular, lineHeight: 18, marginTop: 2 },
   rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginVertical: spacing.sm },
   rememberRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   checkbox: {
@@ -304,31 +307,31 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   checkboxActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  rememberText: { color: colors.textSecondary, fontSize: fontSizes.caption },
-  forgotText: { color: colors.accent, fontSize: fontSizes.caption, fontWeight: "600" },
+  rememberText: { color: colors.textSecondary, fontSize: fontSizes.caption, fontFamily: fonts.regular },
+  forgotText: { color: colors.accent, fontSize: fontSizes.caption, fontFamily: fonts.semibold },
   btnPrimary: {
     backgroundColor: colors.primary, height: 52,
     borderRadius: radius.md, alignItems: "center", justifyContent: "center",
     marginTop: spacing.sm,
   },
-  btnPrimaryText: { color: "#fff", fontSize: fontSizes.h6, fontWeight: "700" },
+  btnPrimaryText: { color: "#fff", fontSize: fontSizes.h6, fontFamily: fonts.bold },
   divider: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginVertical: spacing.md },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
-  dividerText: { color: colors.textSecondary, fontSize: fontSizes.caption },
+  dividerText: { color: colors.textSecondary, fontSize: fontSizes.caption, fontFamily: fonts.regular },
   btnOutline: {
-    height: 52, borderRadius: radius.md,
+    height: 44, borderRadius: radius.md,
     borderWidth: 1.5, borderColor: colors.border,
     alignItems: "center", justifyContent: "center",
   },
-  btnOutlineText: { color: colors.textPrimary, fontSize: fontSizes.body, fontWeight: "600" },
+  btnOutlineText: { color: colors.textPrimary, fontSize: fontSizes.body, fontFamily: fonts.medium },
   registerSection: { alignItems: "center", gap: spacing.sm, marginTop: spacing.lg },
-  registerPrompt: { color: colors.textSecondary, fontSize: fontSizes.caption },
+  registerPrompt: { color: colors.textSecondary, fontSize: fontSizes.caption, fontFamily: fonts.regular },
   btnRegister: {
-    width: "100%", height: 48, borderRadius: radius.md,
+    width: "100%", height: 44, borderRadius: radius.md,
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm,
     borderWidth: 1, borderColor: `${colors.accent}40`, backgroundColor: `${colors.accent}10`,
   },
-  registerLink: { color: colors.accent, fontSize: fontSizes.bodyAlt, fontFamily: "Montserrat_700Bold" },
+  registerLink: { color: colors.accent, fontSize: fontSizes.bodyAlt, fontFamily: fonts.bold },
   securityRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: spacing.lg },
-  securityText: { color: colors.textSecondary, fontSize: fontSizes.label },
+  securityText: { color: colors.textSecondary, fontSize: fontSizes.label, fontFamily: fonts.regular },
 });

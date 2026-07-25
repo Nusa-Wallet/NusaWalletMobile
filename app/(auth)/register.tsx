@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { useRef, useState } from "react";
 import {
   KeyboardAvoidingView, Platform,
@@ -11,8 +11,8 @@ import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } 
 import { FormField, PasswordToggle } from "@/components/FormField";
 import { StaggerFadeIn } from "@/components/StaggerFadeIn";
 import { useAuth } from "@/store/auth";
-import { colors, radius, spacing } from "@/theme/colors";
-import { fontSizes } from "@/theme/typography";
+import { palette, colors, radius, spacing } from "@/theme/colors";
+import { fonts, fontSizes } from "@/theme/typography";
 import { scale } from "@/utils/responsive";
 import AnimatedPressable from "@/components/AnimatedPressable";
 
@@ -36,7 +36,10 @@ function useShakeField() {
 
 export default function Register() {
   const { width: screenWidth } = useWindowDimensions();
-  const { register } = useAuth();
+  const { register, token, loading: authLoading } = useAuth();
+
+  if (authLoading) return null;
+  if (token) return <Redirect href="/(tabs)" />;
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -333,31 +336,31 @@ const s = StyleSheet.create({
     backgroundColor: colors.accent,
     alignItems: "center", justifyContent: "center",
   },
-  title: { fontSize: fontSizes.h2, fontWeight: "700", textAlign: "center", color: colors.textPrimary },
+  title: { fontSize: fontSizes.h2, fontFamily: fonts.bold, textAlign: "center", color: colors.textPrimary },
   subtitle: {
     textAlign: "center", color: colors.textSecondary,
-    marginTop: 4, marginBottom: spacing.lg, lineHeight: 22, fontSize: fontSizes.body,
+    marginTop: 4, marginBottom: spacing.lg, lineHeight: 22, fontSize: fontSizes.body, fontFamily: fonts.regular,
   },
   errorBox: {
     flexDirection: "row", alignItems: "flex-start", gap: spacing.sm,
-    backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA",
+    backgroundColor: palette.red10, borderWidth: 1, borderColor: palette.red10,
     borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.md,
   },
   errorContent: { flex: 1 },
-  errorTitle: { color: colors.danger, fontSize: fontSizes.bodyAlt, fontWeight: "700" },
-  errorText: { color: colors.danger, fontSize: fontSizes.caption, lineHeight: 18, marginTop: 2 },
+  errorTitle: { color: colors.danger, fontSize: fontSizes.bodyAlt, fontFamily: fonts.bold },
+  errorText: { color: colors.danger, fontSize: fontSizes.caption, fontFamily: fonts.regular, lineHeight: 18, marginTop: 2 },
   strengthWrap: { marginTop: -2, marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
   strengthHeader: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
     marginBottom: 6,
   },
-  strengthLabel: { color: colors.textSecondary, fontSize: fontSizes.label },
-  strengthValue: { fontSize: fontSizes.label, fontWeight: "700" },
+  strengthLabel: { color: colors.textSecondary, fontSize: fontSizes.label, fontFamily: fonts.regular },
+  strengthValue: { fontSize: fontSizes.label, fontFamily: fonts.bold },
   strengthBars: { flexDirection: "row", gap: 5 },
   strengthBar: { flex: 1, height: 4, borderRadius: 4, backgroundColor: colors.border },
-  passwordHint: { color: colors.textSecondary, fontSize: fontSizes.small, lineHeight: 16, marginTop: 6 },
+  passwordHint: { color: colors.textSecondary, fontSize: fontSizes.small, fontFamily: fonts.regular, lineHeight: 16, marginTop: 6 },
   termsText: {
-    color: colors.textSecondary, fontSize: fontSizes.label, lineHeight: 18,
+    color: colors.textSecondary, fontSize: fontSizes.label, fontFamily: fonts.regular, lineHeight: 18,
     textAlign: "center", marginTop: spacing.xs,
   },
   btnPrimary: {
@@ -365,16 +368,16 @@ const s = StyleSheet.create({
     borderRadius: radius.md, alignItems: "center", justifyContent: "center",
     marginTop: spacing.md,
   },
-  btnPrimaryText: { color: "#fff", fontSize: fontSizes.h6, fontWeight: "700" },
+  btnPrimaryText: { color: "#fff", fontSize: fontSizes.h6, fontFamily: fonts.bold },
   loginRow: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     flexWrap: "wrap", gap: 5, marginTop: spacing.md,
   },
-  loginPrompt: { color: colors.textSecondary, fontSize: fontSizes.caption },
-  loginLink: { color: colors.accent, fontSize: fontSizes.caption, fontWeight: "700" },
+  loginPrompt: { color: colors.textSecondary, fontSize: fontSizes.caption, fontFamily: fonts.regular },
+  loginLink: { color: colors.accent, fontSize: fontSizes.caption, fontFamily: fonts.bold },
   securityRow: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 6, marginTop: spacing.lg,
   },
-  securityText: { color: colors.textSecondary, fontSize: fontSizes.label, textAlign: "center" },
+  securityText: { color: colors.textSecondary, fontSize: fontSizes.label, fontFamily: fonts.regular, textAlign: "center" },
 });
