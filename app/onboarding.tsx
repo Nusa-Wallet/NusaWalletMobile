@@ -1,11 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Link, router } from "expo-router";
-import { useRef, useState } from "react";
-import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Image, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeInDown, SlideInDown } from "react-native-reanimated";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { StaggerFadeIn } from "@/components/StaggerFadeIn";
 import { colors, radius, spacing } from "@/theme/colors";
 import { fontSizes } from "@/theme/typography";
 import { scale, scaleFont } from "@/utils/responsive";
@@ -20,11 +19,14 @@ const SLIDES = [
 export default function Onboarding() {
   const { width: screenWidth } = useWindowDimensions();
   const [i, setI] = useState(0);
+  const [ready, setReady] = useState(false);
   const last = i === SLIDES.length - 1;
   const slide = SLIDES[i];
 
-  const iconSize = scale(100, screenWidth);
+  const iconSize = scale(120, screenWidth);
   const titleFont = scaleFont(fontSizes.h2, screenWidth);
+
+  useEffect(() => { const t = setTimeout(() => setReady(true), 60); return () => clearTimeout(t); }, []);
 
   function next() {
     if (last) {
@@ -34,26 +36,42 @@ export default function Onboarding() {
     }
   }
 
+  if (!ready) {
+    return (
+      <SafeAreaView style={s.container}>
+        <View style={s.logoArea} />
+        <View style={s.body}>
+          <View style={[s.iconWrap, { width: iconSize, height: iconSize, borderRadius: iconSize * 0.24 }]} />
+          <View style={[s.skelTitle, { width: screenWidth * 0.5 }]} />
+          <View style={[s.skelDesc, { width: screenWidth * 0.75 }]} />
+        </View>
+        <View style={s.footer}>
+          <View style={s.skelBtn} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={s.container}>
-      <StaggerFadeIn index={0} baseDelay={100}>
-        <View style={s.logoArea}>
-          <View style={s.logoRow}>
-            <View style={s.logoBox}>
-              <Ionicons name="wallet" size={22} color="#fff" />
-            </View>
-            <View>
-              <Text style={s.logoTextNusa}>Nusa</Text>
-              <Text style={s.logoTextWallet}>Wallet</Text>
-            </View>
+      <View style={s.logoArea}>
+        <View style={s.logoRow}>
+          <Image
+            source={require("@/../assets/app-icon.png")}
+            style={s.logoImg}
+            resizeMode="contain"
+          />
+          <View>
+            <Text style={s.logoTextNusa}>Nusa</Text>
+            <Text style={s.logoTextWallet}>Wallet</Text>
           </View>
         </View>
-      </StaggerFadeIn>
+      </View>
 
       <View style={s.body}>
         <Animated.View key={i} entering={FadeInDown.duration(300)} style={s.slideContent}>
           <View style={[s.iconWrap, { width: iconSize, height: iconSize, borderRadius: iconSize * 0.24 }]}>
-            <Ionicons name={slide.icon as any} size={iconSize * 0.48} color={colors.accent} />
+            <Ionicons name={slide.icon as any} size={iconSize * 0.44} color={colors.accent} />
           </View>
           <Text style={[s.title, { fontSize: titleFont }]}>{slide.title}</Text>
           <Text style={s.desc}>{slide.desc}</Text>
@@ -74,7 +92,7 @@ export default function Onboarding() {
           <Ionicons name={last ? "sparkles" : "arrow-forward"} size={18} color="#fff" />
         </AnimatedPressable>
         <Link href="/(auth)/login" style={s.skip}>
-          <Text style={s.skipText}>Lewati — Saya sudah punya akun</Text>
+          <Text style={s.skipText}>Lewati</Text>
         </Link>
       </View>
     </SafeAreaView>
@@ -84,32 +102,36 @@ export default function Onboarding() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, paddingHorizontal: spacing.lg },
   logoArea: { alignItems: "center", paddingTop: spacing.xl },
-  logoRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  logoBox: {
-    width: 40, height: 40, borderRadius: 10,
-    backgroundColor: colors.accent, alignItems: "center", justifyContent: "center",
-  },
-  logoTextNusa: { fontSize: fontSizes.h3, fontWeight: "800", color: colors.primary },
-  logoTextWallet: { fontSize: fontSizes.h3, fontWeight: "800", color: colors.accent, marginTop: -4 },
+  logoRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  logoImg: { width: 36, height: 36 },
+  logoTextNusa: { fontSize: fontSizes.h3, fontFamily: "Montserrat_700Bold", color: colors.primary },
+  logoTextWallet: { fontSize: fontSizes.h3, fontFamily: "Montserrat_700Bold", color: colors.accent, marginTop: -4 },
   body: { flex: 1, alignItems: "center", justifyContent: "center" },
-  slideContent: { alignItems: "center" },
+  slideContent: { alignItems: "center", gap: spacing.md },
   iconWrap: {
     width: 100, height: 100, borderRadius: 24,
-    backgroundColor: `${colors.accent}12`, alignItems: "center", justifyContent: "center",
-    marginBottom: spacing.lg,
+    backgroundColor: `${colors.accent}10`,
+    alignItems: "center", justifyContent: "center",
+    marginBottom: spacing.sm,
   },
-  title: { fontSize: fontSizes.h2, fontWeight: "700", color: colors.textPrimary, textAlign: "center" },
-  desc: { fontSize: fontSizes.body, color: colors.textSecondary, textAlign: "center", marginTop: spacing.sm, paddingHorizontal: spacing.md, lineHeight: 22 },
-  dots: { flexDirection: "row", gap: 8, marginTop: 40 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border },
-  dotActive: { width: 24, backgroundColor: colors.accent },
-  footer: { gap: spacing.md, paddingBottom: spacing.xl },
+  title: { fontSize: fontSizes.h2, fontFamily: "Montserrat_700Bold", color: colors.textPrimary, textAlign: "center" },
+  desc: { fontSize: fontSizes.body, color: colors.textSecondary, textAlign: "center", lineHeight: 22, paddingHorizontal: spacing.xs },
+  dots: { flexDirection: "row", gap: 8, paddingTop: spacing.xl },
+  dot: {
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: colors.border, opacity: 0.5,
+  },
+  dotActive: { width: 28, backgroundColor: colors.accent, opacity: 1 },
+  footer: { gap: spacing.sm, paddingBottom: spacing.xl },
   btnPrimary: {
     backgroundColor: colors.primary, height: 54,
     borderRadius: radius.md, alignItems: "center", justifyContent: "center",
     flexDirection: "row", gap: spacing.sm,
   },
-  btnPrimaryText: { color: "#fff", fontSize: fontSizes.h6, fontWeight: "700" },
-  skip: { alignItems: "center", paddingVertical: 4 },
-  skipText: { color: colors.textSecondary, fontWeight: "500", fontSize: fontSizes.bodyAlt },
+  btnPrimaryText: { color: "#fff", fontSize: fontSizes.h6, fontFamily: "Montserrat_700Bold" },
+  skip: { alignItems: "center", paddingVertical: spacing.sm },
+  skipText: { color: colors.textSecondary, fontFamily: "Montserrat_500Medium", fontSize: fontSizes.bodyAlt },
+  skelTitle: { height: 24, borderRadius: 6, backgroundColor: colors.border, marginTop: spacing.md },
+  skelDesc: { height: 40, borderRadius: 6, backgroundColor: colors.border, marginTop: spacing.sm },
+  skelBtn: { height: 54, borderRadius: radius.md, backgroundColor: colors.border, opacity: 0.3 },
 });
