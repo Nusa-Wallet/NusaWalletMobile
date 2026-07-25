@@ -1,15 +1,18 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-import { TOKEN_KEY } from "@/api/client";
+import { onUnauthorized, setAuthToken } from "@/api/client";
 import { AuthApi, LoginCredentials, RegisterCredentials } from "@/api/endpoints";
 
 export type LoginMethod = "email" | "phone";
 
+const SECURE_TOKEN_KEY = "nusawallet.token";
+const SECURE_NAME_KEY = "nusawallet.user-name";
+const SECURE_EMAIL_KEY = "nusawallet.user-email";
 export const ONBOARDING_COMPLETE_KEY = "nusawallet.onboarding-complete";
-export const USER_NAME_KEY = "nusawallet.user-name";
-export const USER_EMAIL_KEY = "nusawallet.user-email";
+export const SPLASH_COMPLETE_KEY = "nusawallet.splash-complete";
 
 type AuthState = {
   token: string | null;
@@ -24,6 +27,26 @@ type AuthState = {
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
+function secureGet(key: string): Promise<string | null> {
+  return SecureStore.getItemAsync(key).catch(() => null);
+}
+
+function secureSet(key: string, value: string): Promise<void> {
+  return SecureStore.setItemAsync(key, value).catch(() => {});
+}
+
+function secureDelete(key: string): Promise<void> {
+  return SecureStore.deleteItemAsync(key).catch(() => {});
+}
+
+async function hydrateToken() {
+  const storedToken = await secureGet(SECURE_TOKEN_KEY);
+  if (storedToken) {
+    setAuthToken(storedToken);
+  }
+  return storedToken;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [hasOnboarded, setHasOnboarded] = useState(false);
@@ -34,23 +57,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function hydrateAuth() {
       try {
-        const values = await AsyncStorage.multiGet([
-          TOKEN_KEY,
-          ONBOARDING_COMPLETE_KEY,
-          USER_NAME_KEY,
-          USER_EMAIL_KEY,
+        const storedToken = await hydrateToken();
+        const [[_, onboardedStr], storedName, storedEmail] = await Promise.all([
+          AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY).then((v) => ["k", v ?? ""] as const),
+          secureGet(SECURE_NAME_KEY),
+          secureGet(SECURE_EMAIL_KEY),
         ]);
-        const storedToken = values[0][1];
-        const completedOnboarding = values[1][1] === "true" || Boolean(storedToken);
-        const storedName = values[2][1];
-        const storedEmail = values[3][1];
+        const completedOnboarding = onboardedStr === "true" || Boolean(storedToken);
 
         setToken(storedToken);
         setHasOnboarded(completedOnboarding);
         setUserName(storedName);
         setUserEmail(storedEmail);
 
-        if (storedToken && values[1][1] !== "true") {
+        if (storedToken && onboardedStr !== "true") {
           await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, "true");
         }
       } finally {
@@ -61,14 +81,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void hydrateAuth();
   }, []);
 
+  useEffect(() => {
+    onUnauthorized(() => {
+      setToken(null);
+      setAuthToken(null);
+      secureDelete(SECURE_TOKEN_KEY);
+      router.replace("/(auth)/login");
+    });
+  }, []);
+
   async function persist(t: string, name?: string, email?: string) {
-    const sets: [string, string][] = [
-      [TOKEN_KEY, t],
-      [ONBOARDING_COMPLETE_KEY, "true"],
-    ];
-    if (name) sets.push([USER_NAME_KEY, name]);
-    if (email) sets.push([USER_EMAIL_KEY, email]);
-    await AsyncStorage.multiSet(sets);
+    setAuthToken(t);
+    await Promise.all([
+      secureSet(SECURE_TOKEN_KEY, t),
+      AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, "true"),
+      name ? secureSet(SECURE_NAME_KEY, name) : Promise.resolve(),
+      email ? secureSet(SECURE_EMAIL_KEY, email) : Promise.resolve(),
+    ]);
     setToken(t);
     setHasOnboarded(true);
     if (name) setUserName(name);
@@ -91,8 +120,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function logout() {
+    setAuthToken(null);
     await Promise.all([
-      AsyncStorage.removeItem(TOKEN_KEY),
+      secureDelete(SECURE_TOKEN_KEY),
+      secureDelete(SECURE_NAME_KEY),
+      secureDelete(SECURE_EMAIL_KEY),
       AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, "true"),
     ]);
     setToken(null);

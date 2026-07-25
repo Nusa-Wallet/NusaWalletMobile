@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { isTutorialComplete, TutorialOverlay } from "@/components/TutorialOverlay";
+import { useAuth } from "@/store/auth";
 import { colors } from "@/theme/colors";
 import { scale } from "@/utils/responsive";
 
@@ -19,8 +20,12 @@ const TABS = [
 ] as const;
 
 export default function TabsLayout() {
+  const { token, loading } = useAuth();
   const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+
+  if (loading) return null;
+  if (!token) return <Redirect href="/(auth)/login" />;
   const bottomPadding = Math.max(insets.bottom, 8);
   const receiveTabSize = scale(58, screenWidth);
   const [showTutorial, setShowTutorial] = useState(false);
