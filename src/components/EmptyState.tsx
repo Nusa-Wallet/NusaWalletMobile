@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 
 import { colors, radius, spacing } from "@/theme/colors";
-import { fontSizes } from "@/theme/typography";
+import { fonts, fontSizes } from "@/theme/typography";
 import AnimatedPressable from "@/components/AnimatedPressable";
 
 type EmptyStateProps = {
@@ -54,20 +54,21 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: fontSizes.h6,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: colors.textPrimary,
     textAlign: "center",
     marginBottom: 4,
   },
   description: {
     fontSize: fontSizes.caption,
+    fontFamily: fonts.regular,
     color: colors.textSecondary,
     textAlign: "center",
     lineHeight: 18,
   },
   button: {
     marginTop: spacing.md,
-    height: 42,
+    height: 44,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.md,
     backgroundColor: colors.primary,
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     fontSize: fontSizes.bodyAlt,
   },
 });

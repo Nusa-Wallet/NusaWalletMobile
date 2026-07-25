@@ -10,6 +10,7 @@ import {
 } from "react-native";
 
 import { colors, radius, spacing } from "@/theme/colors";
+import { fonts } from "@/theme/typography";
 
 export function Button({
   title,
@@ -58,7 +59,7 @@ const styles = StyleSheet.create({
   },
   btnPrimary: { backgroundColor: colors.primary },
   btnOutline: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
-  btnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  btnText: { color: "#fff", fontSize: 16, fontFamily: fonts.semibold },
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
@@ -66,5 +67,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  title: { fontSize: 22, fontWeight: "700", color: colors.textPrimary },
+  title: { fontSize: 22, fontFamily: fonts.bold, color: colors.textPrimary },
 });

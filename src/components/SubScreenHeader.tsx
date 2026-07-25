@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
 import { colors, radius, spacing } from "@/theme/colors";
-import { fontSizes } from "@/theme/typography";
+import { fonts, fontSizes } from "@/theme/typography";
 import AnimatedPressable from "@/components/AnimatedPressable";
 
 interface SubScreenHeaderProps {
@@ -29,5 +29,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.separator, backgroundColor: colors.card,
   },
   backBtn: { width: 40, height: 40, borderRadius: radius.sm, alignItems: "center", justifyContent: "center", backgroundColor: colors.background },
-  headerTitle: { fontSize: fontSizes.h6, fontWeight: "700", color: colors.textPrimary },
+  headerTitle: { fontSize: fontSizes.h6, fontFamily: fonts.bold, color: colors.textPrimary },
 });

@@ -1,7 +1,7 @@
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors, radius, spacing } from "@/theme/colors";
-import { fontSizes } from "@/theme/typography";
+import { fonts, fontSizes } from "@/theme/typography";
 
 type ConfirmModalProps = {
   visible: boolean;
@@ -79,19 +79,20 @@ const s = StyleSheet.create({
   icon: { fontSize: 24 },
   title: {
     fontSize: fontSizes.h5,
-    fontFamily: "Montserrat_700Bold",
+    fontFamily: fonts.bold,
     color: colors.textPrimary,
     textAlign: "center",
   },
   message: {
     fontSize: fontSizes.body,
+    fontFamily: fonts.regular,
     color: colors.textSecondary,
     textAlign: "center",
     lineHeight: 20,
   },
   detail: {
     fontSize: fontSizes.bodyAlt,
-    fontFamily: "Montserrat_700Bold",
+    fontFamily: fonts.bold,
     color: colors.textPrimary,
     textAlign: "center",
     backgroundColor: `${colors.accent}08`,
@@ -109,7 +110,7 @@ const s = StyleSheet.create({
   },
   btnCancel: {
     flex: 1,
-    height: 48,
+    height: 44,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -118,12 +119,12 @@ const s = StyleSheet.create({
   },
   btnCancelText: {
     fontSize: fontSizes.body,
-    fontFamily: "Montserrat_600SemiBold",
+    fontFamily: fonts.semibold,
     color: colors.textSecondary,
   },
   btnConfirm: {
     flex: 1,
-    height: 48,
+    height: 44,
     borderRadius: radius.md,
     backgroundColor: colors.accent,
     alignItems: "center",
@@ -131,7 +132,7 @@ const s = StyleSheet.create({
   },
   btnConfirmText: {
     fontSize: fontSizes.body,
-    fontFamily: "Montserrat_700Bold",
+    fontFamily: fonts.bold,
     color: "#fff",
   },
 });
