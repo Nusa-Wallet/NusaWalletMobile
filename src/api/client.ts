@@ -1,8 +1,27 @@
 import axios from "axios";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 
-const DEFAULT_HOST = Platform.OS === "android" ? "http://10.0.2.2:8000" : "http://localhost:8000";
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_HOST;
+function getExpoHost() {
+  const constants = Constants as any;
+  const hostUri =
+    Constants.expoConfig?.hostUri ??
+    constants.manifest2?.extra?.expoGo?.debuggerHost ??
+    constants.manifest?.debuggerHost;
+  return typeof hostUri === "string" ? hostUri.split(":")[0] : null;
+}
+
+const nativeHost = getExpoHost();
+const DEFAULT_HOST =
+  Platform.OS === "web"
+    ? "http://localhost:8000"
+    : nativeHost
+      ? `http://${nativeHost}:8000`
+      : Platform.OS === "android"
+        ? "http://10.0.2.2:8000"
+        : "http://localhost:8000";
+
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_HOST;
 
 export const api = axios.create({ baseURL: API_URL, timeout: 10000 });
 
