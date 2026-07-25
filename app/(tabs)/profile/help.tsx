@@ -6,7 +6,7 @@ import { Card } from "@/components/ui";
 import { StaggerFadeIn } from "@/components/StaggerFadeIn";
 import { SubScreenHeader } from "@/components/SubScreenHeader";
 import { colors, radius, spacing } from "@/theme/colors";
-import { fontSizes } from "@/theme/typography";
+import { fonts, fontSizes } from "@/theme/typography";
 import { scale } from "@/utils/responsive";
 import AnimatedPressable from "@/components/AnimatedPressable";
 
@@ -77,11 +77,11 @@ const s = StyleSheet.create({
     alignItems: "center", gap: 4,
   },
   helpIcon: { alignItems: "center", justifyContent: "center", marginBottom: 4 },
-  helpCardTitle: { fontWeight: "700", color: colors.textPrimary, fontSize: fontSizes.bodyAlt },
-  helpCardSub: { color: colors.textSecondary, fontSize: fontSizes.small },
-  sectionTitle: { fontSize: fontSizes.label, fontWeight: "600", color: colors.textSecondary, letterSpacing: 0.5, paddingHorizontal: 4, marginBottom: spacing.sm, marginTop: spacing.xs },
-  faqQ: { fontWeight: "600", color: colors.textPrimary, fontSize: fontSizes.bodyAlt, marginBottom: 4 },
-  faqA: { color: colors.textSecondary, fontSize: fontSizes.caption, lineHeight: 19 },
+  helpCardTitle: { fontFamily: fonts.bold, fontWeight: "700", color: colors.textPrimary, fontSize: fontSizes.bodyAlt },
+  helpCardSub: { fontFamily: fonts.regular, color: colors.textSecondary, fontSize: fontSizes.small },
+  sectionTitle: { fontFamily: fonts.semibold, fontSize: fontSizes.label, fontWeight: "600", color: colors.textSecondary, letterSpacing: 0.5, paddingHorizontal: 4, marginBottom: spacing.sm, marginTop: spacing.xs },
+  faqQ: { fontFamily: fonts.semibold, fontWeight: "600", color: colors.textPrimary, fontSize: fontSizes.bodyAlt, marginBottom: 4 },
+  faqA: { fontFamily: fonts.regular, color: colors.textSecondary, fontSize: fontSizes.caption, lineHeight: 19 },
   footer: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm, paddingVertical: spacing.md },
-  footerText: { color: colors.textSecondary, fontSize: fontSizes.caption },
+  footerText: { fontFamily: fonts.regular, color: colors.textSecondary, fontSize: fontSizes.caption },
 });

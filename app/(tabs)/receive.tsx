@@ -15,8 +15,8 @@ import { Card } from "@/components/ui";
 import { EmptyState } from "@/components/EmptyState";
 import { Skeleton, SkeletonCard } from "@/components/Skeleton";
 import { StaggerFadeIn } from "@/components/StaggerFadeIn";
-import { colors, radius, spacing } from "@/theme/colors";
-import { fontSizes } from "@/theme/typography";
+import { palette, colors, radius, spacing } from "@/theme/colors";
+import { fonts, fontSizes } from "@/theme/typography";
 import { scale } from "@/utils/responsive";
 import AnimatedPressable from "@/components/AnimatedPressable";
 
@@ -26,10 +26,12 @@ const RISK_COLOR: Record<RiskLevel, string> = {
   HIGH: colors.danger,
 };
 
-const CCYS = ["USD", "SGD", "EUR", "MYR"];
 const SYMBOLS: Record<string, string> = { USD: "$", SGD: "S$", EUR: "€", MYR: "RM" };
-const FALLBACK_IDR_RATES: Record<string, number> = { USD: 15850, SGD: 12050, EUR: 17200, MYR: 3450 };
 const FEE_RATE = 0.005;
+
+function currencySymbol(ccy: string): string {
+  return SYMBOLS[ccy] ?? ccy;
+}
 
 interface LinkData { code: string; url: string }
 
@@ -48,14 +50,14 @@ function sanitizeAmountInput(value: string) {
 export default function Receive() {
   const { width: screenWidth } = useWindowDimensions();
   const [currency, setCurrency] = useState("USD");
-  const [amount, setAmount] = useState("500");
+  const [amount, setAmount] = useState("");
   const [linkData, setLinkData] = useState<LinkData | null>(null);
   const [linkConsumed, setLinkConsumed] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [fraud, setFraud] = useState<FraudResult | null>(null);
   const [paying, setPaying] = useState(false);
-  const [rates, setRates] = useState<Record<string, number>>(FALLBACK_IDR_RATES);
+  const [rates, setRates] = useState<Record<string, number>>({});
   const [ratesLoading, setRatesLoading] = useState(true);
   const [ratesRefreshing, setRatesRefreshing] = useState(false);
 
@@ -66,7 +68,7 @@ export default function Receive() {
     try {
       const { data } = await WalletApi.rates();
       setRates(data);
-    } catch { /* use fallback */ }
+    } catch { /* rates stay empty */ }
     setRatesLoading(false);
     if (isRefresh) setRatesRefreshing(false);
   }
@@ -75,11 +77,12 @@ export default function Receive() {
     useCallback(() => { fetchRates(); }, []),
   );
 
-  const sym = SYMBOLS[currency] ?? "";
+  const ccyList = Object.keys(rates).filter((c) => c !== "IDR");
+  const sym = currencySymbol(currency);
   const amt = Number(amount) || 0;
   const fee = +(amt * FEE_RATE).toFixed(2);
   const net = +(amt - fee).toFixed(2);
-  const idrEquiv = Math.round(net * (rates[currency] ?? FALLBACK_IDR_RATES[currency] ?? 0));
+  const idrEquiv = Math.round(net * (rates[currency] ?? 0));
   const displayUrl = linkData ? absolutePaymentUrl(linkData.url) : null;
 
   async function generate() {
@@ -115,8 +118,10 @@ export default function Receive() {
     setPaying(true);
     setFraud(null);
     setNotice(null);
-    const payerName = scenario === "normal" ? "Andi Wijaya" : "";
-    const originCountry = scenario === "normal" ? "SG" : "KP";
+    const testNames = ["Budi Santoso", "Siti Rahayu", "Ahmad Fauzi", "Dewi Lestari"];
+    const testCountries = ["SG", "MY", "JP", "GB"];
+    const payerName = scenario === "normal" ? testNames[Math.floor(Math.random() * testNames.length)] : "";
+    const originCountry = scenario === "normal" ? testCountries[Math.floor(Math.random() * testCountries.length)] : "KP";
     try {
       let activeLink = linkData;
       if (linkConsumed) {
@@ -182,7 +187,7 @@ export default function Receive() {
             <Card>
               <Text style={s.label}>Mata Uang</Text>
               <View style={s.ccyRow}>
-                {CCYS.map((c) => (
+                {ccyList.map((c) => (
                   <AnimatedPressable
                     key={c}
                     onPress={() => {
@@ -351,7 +356,7 @@ function Row({ label, value, valueColor }: { label: string; value: string; value
   return (
     <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
       <Text style={{ color: colors.textSecondary, fontSize: fontSizes.bodyAlt }}>{label}</Text>
-      <Text style={{ color: valueColor ?? colors.textPrimary, fontWeight: "600", fontSize: fontSizes.bodyAlt }}>{value}</Text>
+      <Text style={{ color: valueColor ?? colors.textPrimary, fontFamily: fonts.semibold, fontSize: fontSizes.bodyAlt }}>{value}</Text>
     </View>
   );
 }
@@ -360,8 +365,8 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: 40 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm },
-  headerTitle: { fontSize: fontSizes.h4, fontWeight: "700", color: colors.textPrimary },
-  label: { fontSize: fontSizes.caption, color: colors.textSecondary, marginBottom: 8, fontWeight: "500" },
+  headerTitle: { fontSize: fontSizes.h2, fontFamily: fonts.bold, color: colors.textPrimary },
+  label: { fontSize: fontSizes.caption, color: colors.textSecondary, marginBottom: 8, fontFamily: fonts.medium },
   ccyRow: { flexDirection: "row", gap: spacing.sm },
   chip: {
     flex: 1, height: 40, borderRadius: radius.md,
@@ -369,53 +374,53 @@ const s = StyleSheet.create({
     backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border,
   },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { color: colors.textSecondary, fontWeight: "600", fontSize: fontSizes.bodyAlt },
+  chipText: { color: colors.textSecondary, fontFamily: fonts.semibold, fontSize: fontSizes.bodyAlt },
   chipTextActive: { color: "#fff" },
   amtInput: {
-    fontSize: fontSizes.h2, fontWeight: "700", color: colors.textPrimary,
+    fontSize: fontSizes.h2, fontFamily: fonts.bold, color: colors.textPrimary,
     borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: 8,
   },
   divider: { height: 1, backgroundColor: colors.border },
   receivedRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  receivedLabel: { fontSize: fontSizes.bodyAlt, color: colors.textSecondary },
-  receivedValue: { fontSize: fontSizes.h4, fontWeight: "800", color: colors.success },
-  idrEquiv: { fontSize: fontSizes.label, color: colors.textSecondary, marginTop: 2 },
+  receivedLabel: { fontSize: fontSizes.bodyAlt, fontFamily: fonts.regular, color: colors.textSecondary },
+  receivedValue: { fontSize: fontSizes.h4, fontFamily: fonts.bold, color: colors.success },
+  idrEquiv: { fontSize: fontSizes.label, fontFamily: fonts.regular, color: colors.textSecondary, marginTop: 2 },
   btnPrimary: {
     backgroundColor: colors.primary, height: 52,
     borderRadius: radius.md, alignItems: "center", justifyContent: "center",
   },
-  btnPrimaryText: { color: "#fff", fontSize: fontSizes.h6, fontWeight: "700" },
+  btnPrimaryText: { color: "#fff", fontSize: fontSizes.h6, fontFamily: fonts.bold },
   successNotice: {
     flexDirection: "row", alignItems: "center", gap: spacing.sm,
-    backgroundColor: "#F0FDF4", borderWidth: 1, borderColor: "#BBF7D0",
+    backgroundColor: palette.green10, borderWidth: 1, borderColor: palette.green10,
     borderRadius: radius.md, padding: spacing.md,
   },
-  successNoticeText: { flex: 1, color: "#166534", fontSize: fontSizes.caption, lineHeight: 18 },
+  successNoticeText: { flex: 1, color: colors.success, fontSize: fontSizes.caption, fontFamily: fonts.regular, lineHeight: 18 },
   linkBox: {
     flexDirection: "row", alignItems: "center", gap: 8,
     backgroundColor: colors.background, borderRadius: radius.sm,
     paddingHorizontal: spacing.sm, paddingVertical: 10,
     borderWidth: 1, borderColor: colors.border,
   },
-  linkText: { color: colors.textSecondary, fontSize: fontSizes.caption, flex: 1 },
+  linkText: { color: colors.textSecondary, fontSize: fontSizes.caption, fontFamily: fonts.regular, flex: 1 },
   btnRow: { flexDirection: "row", gap: spacing.sm },
   actionBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 6, height: 44, borderRadius: radius.md, backgroundColor: colors.primary,
   },
   actionBtnOutline: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border },
-  actionBtnText: { color: "#fff", fontWeight: "700", fontSize: fontSizes.bodyAlt },
+  actionBtnText: { color: "#fff", fontFamily: fonts.bold, fontSize: fontSizes.bodyAlt },
   fraudResult: {
     backgroundColor: colors.background, borderRadius: radius.md,
     padding: spacing.md, gap: spacing.sm,
   },
-  sandboxHint: { color: colors.textSecondary, fontSize: fontSizes.label, lineHeight: 17 },
+  sandboxHint: { color: colors.textSecondary, fontSize: fontSizes.label, fontFamily: fonts.regular, lineHeight: 17 },
   fraudHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  fraudTitle: { flex: 1, fontWeight: "700", color: colors.textPrimary, fontSize: fontSizes.bodyAlt },
+  fraudTitle: { flex: 1, fontFamily: fonts.bold, color: colors.textPrimary, fontSize: fontSizes.bodyAlt },
   riskBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
-  riskBadgeText: { color: "#fff", fontWeight: "700", fontSize: fontSizes.small },
+  riskBadgeText: { color: "#fff", fontFamily: fonts.bold, fontSize: fontSizes.small },
   factorRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   factorDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.danger, marginTop: 6 },
-  factorText: { flex: 1, color: colors.textSecondary, fontSize: fontSizes.label, lineHeight: 18 },
-  fraudNote: { color: colors.textSecondary, fontSize: fontSizes.small, fontStyle: "italic", marginTop: 2 },
+  factorText: { flex: 1, color: colors.textSecondary, fontSize: fontSizes.label, fontFamily: fonts.regular, lineHeight: 18 },
+  fraudNote: { color: colors.textSecondary, fontSize: fontSizes.small, fontFamily: fonts.regular, fontStyle: "italic", marginTop: 2 },
 });

@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StaggerFadeIn } from "@/components/StaggerFadeIn";
 import { SubScreenHeader } from "@/components/SubScreenHeader";
 import { colors, radius, spacing } from "@/theme/colors";
-import { fontSizes } from "@/theme/typography";
+import { fonts, fontSizes } from "@/theme/typography";
 import { scale } from "@/utils/responsive";
 import AnimatedPressable from "@/components/AnimatedPressable";
 
@@ -133,17 +133,17 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: 40 },
   section: { gap: spacing.sm },
-  sectionTitle: { fontSize: fontSizes.label, fontWeight: "600", color: colors.textSecondary, letterSpacing: 0.5, paddingHorizontal: 4 },
+  sectionTitle: { fontFamily: fonts.semibold, fontSize: fontSizes.label, fontWeight: "600", color: colors.textSecondary, letterSpacing: 0.5, paddingHorizontal: 4 },
   card: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: "hidden" },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md },
   rowIcon: { width: 36, height: 36, borderRadius: radius.sm, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" },
   rowContent: { flex: 1 },
-  rowTitle: { fontWeight: "600", color: colors.textPrimary, fontSize: fontSizes.bodyAlt },
-  rowSub: { color: colors.textSecondary, fontSize: fontSizes.label, marginTop: 1 },
+  rowTitle: { fontFamily: fonts.semibold, fontWeight: "600", color: colors.textPrimary, fontSize: fontSizes.bodyAlt },
+  rowSub: { fontFamily: fonts.regular, color: colors.textSecondary, fontSize: fontSizes.label, marginTop: 1 },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.separator, marginHorizontal: spacing.md },
   securityNote: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm,
     paddingVertical: spacing.md,
   },
-  securityNoteText: { fontSize: fontSizes.caption, color: colors.success, fontWeight: "500" },
+  securityNoteText: { fontFamily: fonts.medium, fontSize: fontSizes.caption, color: colors.success, fontWeight: "500" },
 });

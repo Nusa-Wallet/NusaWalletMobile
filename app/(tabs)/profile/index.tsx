@@ -7,27 +7,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Card } from "@/components/ui";
 import { StaggerFadeIn } from "@/components/StaggerFadeIn";
 import { useAuth } from "@/store/auth";
-import { colors, radius, spacing } from "@/theme/colors";
+import { palette, colors, radius, spacing } from "@/theme/colors";
+import { fonts, fontSizes } from "@/theme/typography";
 import { scale } from "@/utils/responsive";
 import AnimatedPressable from "@/components/AnimatedPressable";
 
-const MENU_GROUPS = [
-  {
-    title: "Akun",
-    items: [
-      { icon: "shield-outline", title: "Keamanan", sub: "2FA, kata sandi, verifikasi", route: "/(tabs)/profile/security" },
-      { icon: "globe-outline", title: "Mata Uang", sub: "Atur mata uang utama & favorit", route: "/(tabs)/wallet" },
-      { icon: "notifications-outline", title: "Notifikasi", sub: "Push, email & pengingat", route: "/(tabs)/profile/notifications" },
-    ],
-  },
-  {
-    title: "Pengaturan",
-    items: [
-      { icon: "phone-portrait-outline", title: "Perangkat", sub: "Kelola perangkat terdaftar", route: "/(tabs)/profile/devices" },
-      { icon: "lock-closed-outline", title: "Privasi", sub: "Kebijakan data & izin", route: "/(tabs)/profile/privacy" },
-      { icon: "help-circle-outline", title: "Bantuan", sub: "FAQ, dukungan & pusat bantuan", route: "/(tabs)/profile/help" },
-    ],
-  },
+const MENU_ITEMS = [
+  { icon: "shield-outline", title: "Keamanan", sub: "2FA, kata sandi, verifikasi", route: "/(tabs)/profile/security" },
+  { icon: "notifications-outline", title: "Notifikasi", sub: "Push, email & pengingat", route: "/(tabs)/profile/notifications" },
+  { icon: "lock-closed-outline", title: "Privasi", sub: "Kebijakan data & izin", route: "/(tabs)/profile/privacy" },
+  { icon: "help-circle-outline", title: "Bantuan", sub: "FAQ, dukungan & pusat bantuan", route: "/(tabs)/profile/help" },
 ];
 
 const INITIALS = (name: string | null) => {
@@ -44,8 +33,8 @@ export default function Profile() {
   const avatarSize = scale(56, screenWidth);
   const menuIconSize = scale(36, screenWidth);
 
-  const displayName = userName ?? "Andi Rizky";
-  const displayEmail = userEmail ?? "demo@nusawallet.id";
+  const displayName = userName ?? "";
+  const displayEmail = userEmail ?? "";
 
   async function handleLogout() {
     setShowLogoutModal(false);
@@ -58,17 +47,11 @@ export default function Profile() {
         <StaggerFadeIn index={0}>
           <View style={styles.headerRow}>
             <Text style={styles.header}>Profil</Text>
-            <AnimatedPressable onPress={() => router.push("/(tabs)/profile/edit-profile" as any)}>
-              <View style={styles.editBtn}>
-                <Ionicons name="create-outline" size={16} color={colors.accent} />
-                <Text style={styles.editText}>Edit</Text>
-              </View>
-            </AnimatedPressable>
           </View>
         </StaggerFadeIn>
 
         <StaggerFadeIn index={1}>
-          <AnimatedPressable>
+          <AnimatedPressable onPress={() => router.push("/(tabs)/profile/edit-profile" as any)}>
             <Card style={styles.profileCard}>
 <View style={[styles.avatar, { width: avatarSize, height: avatarSize }]}>
               <Text style={[styles.avatarText, { fontSize: avatarSize * 0.32 }]}>{INITIALS(displayName)}</Text>
@@ -76,43 +59,37 @@ export default function Profile() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{displayName}</Text>
                 <Text style={styles.email}>{displayEmail}</Text>
-                <View style={styles.tags}>
-                  <View style={[styles.tag, { backgroundColor: "#DCFCE7" }]}>
-                    <Text style={[styles.tagText, { color: colors.success }]}>Terverifikasi</Text>
+                {displayEmail ? (
+                  <View style={styles.tags}>
+                    <View style={[styles.tag, { backgroundColor: "#DCFCE7" }]}>
+                      <Text style={[styles.tagText, { color: colors.success }]}>Terverifikasi</Text>
+                    </View>
                   </View>
-                  <View style={[styles.tag, { backgroundColor: "#E5EDFB" }]}>
-                    <Text style={[styles.tagText, { color: colors.accent }]}>Bisnis</Text>
-                  </View>
-                </View>
+                ) : null}
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
             </Card>
           </AnimatedPressable>
         </StaggerFadeIn>
 
-        {MENU_GROUPS.map((group, gi) => (
-          <StaggerFadeIn key={group.title} index={gi + 2}>
-            <View>
-              <Text style={styles.menuGroupTitle}>{group.title}</Text>
-              <Card style={{ padding: 0 }}>
-                {group.items.map((m, i) => (
-                  <AnimatedPressable key={m.title} onPress={() => router.push(m.route as any)}>
-                    <View style={[styles.menuRow, i < group.items.length - 1 && styles.menuBorder]}>
+        <StaggerFadeIn index={3}>
+          <Card style={{ padding: 0 }}>
+            {MENU_ITEMS.map((m, i) => (
+              <AnimatedPressable key={m.title} onPress={() => router.push(m.route as any)}>
+                <View style={[styles.menuRow, i < MENU_ITEMS.length - 1 && styles.menuBorder]}>
 <View style={[styles.menuIcon, { width: menuIconSize, height: menuIconSize }]}>
-                      <Ionicons name={m.icon as any} size={menuIconSize * 0.56} color={colors.textSecondary} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.menuTitle}>{m.title}</Text>
-                        <Text style={styles.menuSub}>{m.sub}</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-                    </View>
-                  </AnimatedPressable>
-                ))}
-              </Card>
-            </View>
-          </StaggerFadeIn>
-        ))}
+                  <Ionicons name={m.icon as any} size={menuIconSize * 0.56} color={colors.textSecondary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.menuTitle}>{m.title}</Text>
+                    <Text style={styles.menuSub}>{m.sub}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+                </View>
+              </AnimatedPressable>
+            ))}
+          </Card>
+        </StaggerFadeIn>
 
         <StaggerFadeIn index={4}>
           <AnimatedPressable onPress={() => setShowLogoutModal(true)}>
@@ -167,33 +144,25 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  header: { fontSize: 22, fontWeight: "700", color: colors.textPrimary },
-  editBtn: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: spacing.md, paddingVertical: 6,
-    borderRadius: radius.sm, borderWidth: 1, borderColor: "#BFDBFE",
-    backgroundColor: "#EFF6FF",
-  },
-  editText: { color: colors.accent, fontSize: 13, fontWeight: "600" },
+  header: { fontSize: fontSizes.h2, fontFamily: fonts.bold, color: colors.textPrimary },
   profileCard: { flexDirection: "row", gap: spacing.md, alignItems: "center" },
   avatar: { width: 56, height: 56, borderRadius: radius.md, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" },
-  avatarText: { color: "#fff", fontWeight: "800", fontSize: 18 },
-  name: { fontWeight: "700", fontSize: 16, color: colors.textPrimary },
-  email: { color: colors.textSecondary, fontSize: 12 },
+  avatarText: { color: "#fff", fontFamily: fonts.bold, fontSize: fontSizes.h3 },
+  name: { fontFamily: fonts.bold, fontSize: fontSizes.bodyAlt, color: colors.textPrimary },
+  email: { color: colors.textSecondary, fontSize: fontSizes.caption, fontFamily: fonts.regular },
   tags: { flexDirection: "row", gap: spacing.sm, marginTop: 6 },
   tag: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.sm },
-  tagText: { fontSize: 11, fontWeight: "700" },
-  menuGroupTitle: { fontSize: 13, fontWeight: "600", color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: spacing.sm, marginTop: spacing.xs, paddingHorizontal: 4 },
+  tagText: { fontSize: fontSizes.small, fontFamily: fonts.bold },
   menuRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md },
   menuBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.separator },
   menuIcon: { width: 36, height: 36, borderRadius: radius.sm, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" },
-  menuTitle: { fontWeight: "600", color: colors.textPrimary, fontSize: 14 },
-  menuSub: { color: colors.textSecondary, fontSize: 12, marginTop: 1 },
+  menuTitle: { fontFamily: fonts.semibold, color: colors.textPrimary, fontSize: fontSizes.bodyAlt },
+  menuSub: { color: colors.textSecondary, fontSize: fontSizes.caption, fontFamily: fonts.regular, marginTop: 1 },
   logoutButton: {
     height: 52, borderRadius: radius.md, backgroundColor: colors.danger,
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm,
   },
-  logoutText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  logoutText: { color: "#fff", fontSize: fontSizes.h6, fontFamily: fonts.bold },
   modalOverlay: {
     flex: 1, backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center", alignItems: "center", padding: spacing.lg,
@@ -205,30 +174,30 @@ const styles = StyleSheet.create({
   },
   modalIconWrap: {
     width: 56, height: 56, borderRadius: 28,
-    backgroundColor: "#FEF2F2", alignItems: "center", justifyContent: "center",
+    backgroundColor: palette.red10, alignItems: "center", justifyContent: "center",
     marginBottom: spacing.md,
   },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: colors.textPrimary, marginBottom: spacing.sm },
-  modalDesc: { fontSize: 14, color: colors.textSecondary, textAlign: "center", lineHeight: 20, marginBottom: spacing.lg },
+  modalTitle: { fontSize: fontSizes.h4, fontFamily: fonts.bold, color: colors.textPrimary, marginBottom: spacing.sm },
+  modalDesc: { fontSize: fontSizes.bodyAlt, fontFamily: fonts.regular, color: colors.textSecondary, textAlign: "center", lineHeight: 20, marginBottom: spacing.lg },
   modalActions: { flexDirection: "row", gap: spacing.sm, width: "100%" },
   modalCancel: {
-    flex: 1, height: 48, borderRadius: radius.md,
+    flex: 1, height: 44, borderRadius: radius.md,
     alignItems: "center", justifyContent: "center",
     borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card,
   },
-  modalCancelText: { color: colors.textPrimary, fontWeight: "600", fontSize: 15 },
+  modalCancelText: { color: colors.textPrimary, fontFamily: fonts.semibold, fontSize: fontSizes.body },
   modalConfirm: {
-    flex: 1, height: 48, borderRadius: radius.md,
+    flex: 1, height: 44, borderRadius: radius.md,
     alignItems: "center", justifyContent: "center",
     backgroundColor: colors.danger,
   },
-  modalConfirmText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  modalConfirmText: { color: "#fff", fontFamily: fonts.bold, fontSize: fontSizes.body },
   appInfo: { alignItems: "center", paddingVertical: spacing.lg, gap: 4 },
   appInfoLogo: {
     width: 32, height: 32, borderRadius: 8,
-    backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center",
+    backgroundColor: palette.blue10, alignItems: "center", justifyContent: "center",
     marginBottom: 4,
   },
-  appInfoName: { fontSize: 13, fontWeight: "600", color: colors.textPrimary },
-  appInfoDesc: { fontSize: 11, color: colors.textSecondary, textAlign: "center" },
+  appInfoName: { fontSize: fontSizes.caption, fontFamily: fonts.semibold, color: colors.textPrimary },
+  appInfoDesc: { fontSize: fontSizes.small, fontFamily: fonts.regular, color: colors.textSecondary, textAlign: "center" },
 });

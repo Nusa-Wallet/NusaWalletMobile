@@ -21,7 +21,7 @@ import { ErrorView } from "@/components/ErrorView";
 import { Skeleton } from "@/components/Skeleton";
 import { StaggerFadeIn } from "@/components/StaggerFadeIn";
 import { colors, radius, spacing } from "@/theme/colors";
-import { fontSizes } from "@/theme/typography";
+import { fonts, fontSizes } from "@/theme/typography";
 import { cardWidth, scale, scaleFont } from "@/utils/responsive";
 import { CCY_COLORS } from "@/constants";
 import AnimatedPressable from "@/components/AnimatedPressable";
@@ -482,15 +482,15 @@ export default function Insights() {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: 40 },
-  header: { fontSize: fontSizes.h5, fontWeight: "700", color: colors.textPrimary, marginBottom: 4 },
+  header: { fontSize: fontSizes.h2, fontFamily: fonts.bold, color: colors.textPrimary, marginBottom: 4 },
 
   summaryRow: { flexDirection: "row", gap: spacing.sm },
-  summaryLabel: { color: colors.textSecondary, fontSize: fontSizes.label, marginTop: 4 },
-  summaryVal: { color: colors.textPrimary, fontWeight: "800", fontSize: fontSizes.h4 },
+  summaryLabel: { color: colors.textSecondary, fontSize: fontSizes.label, fontFamily: fonts.regular, marginTop: 4 },
+  summaryVal: { color: colors.textPrimary, fontFamily: fonts.bold, fontSize: fontSizes.h4 },
 
-  cardTitle: { fontWeight: "700", color: colors.textPrimary, marginBottom: spacing.md },
+  cardTitle: { fontFamily: fonts.bold, color: colors.textPrimary, marginBottom: spacing.md },
   chartSubtitle: {
-    color: colors.textSecondary, fontSize: fontSizes.label, lineHeight: 18,
+    color: colors.textSecondary, fontSize: fontSizes.label, fontFamily: fonts.regular, lineHeight: 18,
     marginBottom: spacing.md,
   },
 
@@ -498,7 +498,7 @@ const s = StyleSheet.create({
   barCol: { flex: 1, alignItems: "center", gap: 4 },
   barTrack: { flex: 1, width: "100%", justifyContent: "flex-end" },
   bar: { width: "100%", backgroundColor: colors.accent, borderRadius: 4, minHeight: 8 },
-  barLabel: { color: colors.textSecondary, fontSize: fontSizes.small },
+  barLabel: { color: colors.textSecondary, fontSize: fontSizes.small, fontFamily: fonts.regular },
 
   donutRow: { flexDirection: "row", alignItems: "center", gap: spacing.lg },
   donutWrap: { position: "relative", alignItems: "center", justifyContent: "center" },
@@ -508,28 +508,28 @@ const s = StyleSheet.create({
     backgroundColor: colors.card, alignItems: "center", justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
   },
-  donutCenterValue: { color: colors.textPrimary, fontWeight: "800", fontSize: fontSizes.h6 },
+  donutCenterValue: { color: colors.textPrimary, fontFamily: fonts.bold, fontSize: fontSizes.h6 },
   donutCenterLabel: {
-    color: colors.textSecondary, fontSize: fontSizes.tiny, textAlign: "center", marginTop: 1,
+    color: colors.textSecondary, fontSize: fontSizes.tiny, fontFamily: fonts.regular, textAlign: "center", marginTop: 1,
   },
   donutLegend: { flex: 1, gap: 8 },
   legendRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   legendDot: { width: 10, height: 10, borderRadius: 5 },
-  legendLabel: { flex: 1, color: colors.textSecondary, fontSize: fontSizes.caption },
-  legendPct: { color: colors.textPrimary, fontWeight: "700", fontSize: fontSizes.caption },
+  legendLabel: { flex: 1, color: colors.textSecondary, fontSize: fontSizes.caption, fontFamily: fonts.regular },
+  legendPct: { color: colors.textPrimary, fontFamily: fonts.bold, fontSize: fontSizes.caption },
 
   aiHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
   aiIconWrap: {
     width: 32, height: 32, borderRadius: 8,
     backgroundColor: `${colors.accent}12`, alignItems: "center", justifyContent: "center",
   },
-  aiTitle: { flex: 1, fontWeight: "700", color: colors.textPrimary, fontSize: fontSizes.caption },
+  aiTitle: { flex: 1, fontFamily: fonts.bold, color: colors.textPrimary, fontSize: fontSizes.caption },
   aiBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
-  aiBadgeText: { color: "#fff", fontWeight: "700", fontSize: fontSizes.label },
-  aiDesc: { color: colors.textSecondary, fontSize: fontSizes.caption, lineHeight: 20 },
+  aiBadgeText: { color: "#fff", fontFamily: fonts.bold, fontSize: fontSizes.label },
+  aiDesc: { color: colors.textSecondary, fontSize: fontSizes.caption, fontFamily: fonts.regular, lineHeight: 20 },
 
   riskSection: { marginBottom: spacing.md, marginTop: spacing.sm },
-  riskSectionLabel: { fontSize: fontSizes.label, fontWeight: "600", color: colors.textSecondary, letterSpacing: 0.5, marginBottom: spacing.sm },
+  riskSectionLabel: { fontSize: fontSizes.label, fontFamily: fonts.semibold, color: colors.textSecondary, letterSpacing: 0.5, marginBottom: spacing.sm },
   riskRow: { flexDirection: "row", gap: spacing.sm },
   riskChip: {
     flex: 1, borderRadius: radius.md, alignItems: "center", paddingVertical: 12, paddingHorizontal: 8,
@@ -545,19 +545,19 @@ const s = StyleSheet.create({
     backgroundColor: colors.background, alignItems: "center", justifyContent: "center",
   },
   riskChipIconWrapActive: { backgroundColor: "rgba(255,255,255,0.2)" },
-  riskChipText: { color: colors.textSecondary, fontWeight: "600", fontSize: fontSizes.small, textAlign: "center" },
+  riskChipText: { color: colors.textSecondary, fontFamily: fonts.semibold, fontSize: fontSizes.small, textAlign: "center" },
   riskChipTextActive: { color: "#fff" },
-  riskChipDesc: { color: colors.textTertiary, fontSize: fontSizes.tiny, textAlign: "center" },
+  riskChipDesc: { color: colors.textTertiary, fontSize: fontSizes.tiny, fontFamily: fonts.regular, textAlign: "center" },
   riskChipDescActive: { color: "rgba(255,255,255,0.7)" },
 
   recommendationLoading: {
     minHeight: 112, alignItems: "center", justifyContent: "center", gap: spacing.sm,
   },
-  recommendationLoadingTitle: { color: colors.textPrimary, fontWeight: "700", fontSize: fontSizes.bodyAlt },
-  recommendationLoadingText: { color: colors.textSecondary, fontSize: fontSizes.label, textAlign: "center" },
+  recommendationLoadingTitle: { color: colors.textPrimary, fontFamily: fonts.bold, fontSize: fontSizes.bodyAlt },
+  recommendationLoadingText: { color: colors.textSecondary, fontSize: fontSizes.label, fontFamily: fonts.regular, textAlign: "center" },
 
   confRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6 },
-  confLabel: { color: colors.textSecondary, fontSize: fontSizes.caption },
+  confLabel: { color: colors.textSecondary, fontSize: fontSizes.caption, fontFamily: fonts.regular },
   confTrack: { height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: "hidden" },
   confFill: { height: "100%", backgroundColor: colors.accent, borderRadius: 4 },
 
@@ -566,21 +566,21 @@ const s = StyleSheet.create({
     marginTop: spacing.md, paddingTop: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator,
   },
-  metricLabel: { flex: 1, color: colors.textSecondary, fontSize: fontSizes.caption },
-  metricVal: { fontWeight: "700", fontSize: fontSizes.caption, color: colors.textPrimary },
+  metricLabel: { flex: 1, color: colors.textSecondary, fontSize: fontSizes.caption, fontFamily: fonts.regular },
+  metricVal: { fontFamily: fonts.bold, fontSize: fontSizes.caption, color: colors.textPrimary },
 
   reasonRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginTop: spacing.sm },
   reasonDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.accent, marginTop: 7 },
-  reasonText: { flex: 1, color: colors.textSecondary, fontSize: fontSizes.label, lineHeight: 18 },
+  reasonText: { flex: 1, color: colors.textSecondary, fontSize: fontSizes.label, fontFamily: fonts.regular, lineHeight: 18 },
 
   convertBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-    height: 46, borderRadius: radius.md, backgroundColor: colors.primary, marginTop: spacing.md,
+    height: 44, borderRadius: radius.md, backgroundColor: colors.primary, marginTop: spacing.md,
   },
-  convertBtnText: { color: "#fff", fontWeight: "700", fontSize: fontSizes.bodyAlt },
+  convertBtnText: { color: "#fff", fontFamily: fonts.bold, fontSize: fontSizes.bodyAlt },
 
   disclaimer: {
-    color: colors.textSecondary, fontSize: fontSizes.small, lineHeight: 16,
+    color: colors.textSecondary, fontSize: fontSizes.small, fontFamily: fonts.regular, lineHeight: 16,
     marginTop: spacing.md, fontStyle: "italic",
   },
 });

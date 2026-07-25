@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { colors, radius, spacing } from "@/theme/colors";
-import { fontSizes } from "@/theme/typography";
+import { fonts, fontSizes } from "@/theme/typography";
 import { scale, scaleFont } from "@/utils/responsive";
 import AnimatedPressable from "@/components/AnimatedPressable";
 
@@ -104,8 +104,8 @@ const s = StyleSheet.create({
   logoArea: { alignItems: "center", paddingTop: spacing.xl },
   logoRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   logoImg: { width: 36, height: 36 },
-  logoTextNusa: { fontSize: fontSizes.h3, fontFamily: "Montserrat_700Bold", color: colors.primary },
-  logoTextWallet: { fontSize: fontSizes.h3, fontFamily: "Montserrat_700Bold", color: colors.accent, marginTop: -4 },
+  logoTextNusa: { fontSize: fontSizes.h3, fontFamily: fonts.bold, color: colors.primary },
+  logoTextWallet: { fontSize: fontSizes.h3, fontFamily: fonts.bold, color: colors.accent, marginTop: -4 },
   body: { flex: 1, alignItems: "center", justifyContent: "center" },
   slideContent: { alignItems: "center", gap: spacing.md },
   iconWrap: {
@@ -114,8 +114,8 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     marginBottom: spacing.sm,
   },
-  title: { fontSize: fontSizes.h2, fontFamily: "Montserrat_700Bold", color: colors.textPrimary, textAlign: "center" },
-  desc: { fontSize: fontSizes.body, color: colors.textSecondary, textAlign: "center", lineHeight: 22, paddingHorizontal: spacing.xs },
+  title: { fontSize: fontSizes.h2, fontFamily: fonts.bold, color: colors.textPrimary, textAlign: "center" },
+  desc: { fontFamily: fonts.regular, fontSize: fontSizes.body, color: colors.textSecondary, textAlign: "center", lineHeight: 22, paddingHorizontal: spacing.xs },
   dots: { flexDirection: "row", gap: 8, paddingTop: spacing.xl },
   dot: {
     width: 8, height: 8, borderRadius: 4,
@@ -124,13 +124,13 @@ const s = StyleSheet.create({
   dotActive: { width: 28, backgroundColor: colors.accent, opacity: 1 },
   footer: { gap: spacing.sm, paddingBottom: spacing.xl },
   btnPrimary: {
-    backgroundColor: colors.primary, height: 54,
+    backgroundColor: colors.primary, height: 52,
     borderRadius: radius.md, alignItems: "center", justifyContent: "center",
     flexDirection: "row", gap: spacing.sm,
   },
-  btnPrimaryText: { color: "#fff", fontSize: fontSizes.h6, fontFamily: "Montserrat_700Bold" },
+  btnPrimaryText: { color: "#fff", fontSize: fontSizes.h6, fontFamily: fonts.bold },
   skip: { alignItems: "center", paddingVertical: spacing.sm },
-  skipText: { color: colors.textSecondary, fontFamily: "Montserrat_500Medium", fontSize: fontSizes.bodyAlt },
+  skipText: { color: colors.textSecondary, fontFamily: fonts.medium, fontSize: fontSizes.bodyAlt },
   skelTitle: { height: 24, borderRadius: 6, backgroundColor: colors.border, marginTop: spacing.md },
   skelDesc: { height: 40, borderRadius: 6, backgroundColor: colors.border, marginTop: spacing.sm },
   skelBtn: { height: 54, borderRadius: radius.md, backgroundColor: colors.border, opacity: 0.3 },
