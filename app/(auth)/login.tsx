@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  KeyboardAvoidingView, Platform,
+  Alert, Image, KeyboardAvoidingView, Platform,
   ScrollView, StyleSheet, Text, useWindowDimensions, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -119,9 +119,11 @@ export default function Login() {
           <View style={s.form}>
             <StaggerFadeIn index={0}>
               <View style={s.logoWrap}>
-                <View style={s.logoBox}>
-                  <Ionicons name="wallet" size={30} color="#fff" />
-                </View>
+                <Image
+                  source={require("@/../assets/app-icon.png")}
+                  style={{ width: 52, height: 52 }}
+                  resizeMode="contain"
+                />
               </View>
               <Text style={s.title}>Selamat Datang</Text>
               <Text style={s.subtitle}>Masuk ke akun NusaWallet Anda</Text>
@@ -193,7 +195,10 @@ export default function Login() {
                   </View>
                   <Text style={s.rememberText}>Ingat saya</Text>
                 </AnimatedPressable>
-                <AnimatedPressable>
+                <AnimatedPressable onPress={() => Alert.alert(
+                  "Bantuan Akun",
+                  "Hubungi kami untuk reset kata sandi:\n\n📧 support@nusawallet.id\n📞 +62 812-3456-7890\n\nKami siap membantu 24/7.",
+                )}>
                   <Text style={s.forgotText}>Lupa kata sandi?</Text>
                 </AnimatedPressable>
               </View>
@@ -323,7 +328,7 @@ const s = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm,
     borderWidth: 1, borderColor: `${colors.accent}40`, backgroundColor: `${colors.accent}10`,
   },
-  registerLink: { color: colors.accent, fontSize: fontSizes.bodyAlt, fontWeight: "700" },
+  registerLink: { color: colors.accent, fontSize: fontSizes.bodyAlt, fontFamily: "Montserrat_700Bold" },
   securityRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: spacing.lg },
   securityText: { color: colors.textSecondary, fontSize: fontSizes.label },
 });
