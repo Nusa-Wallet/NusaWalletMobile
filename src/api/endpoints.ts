@@ -63,18 +63,46 @@ export type RegisterCredentials = {
   phone: string;
 };
 
+export type TokenResponse = {
+  access_token: string;
+  token_type: string;
+  role: string;
+  full_name: string;
+  email: string;
+};
+
+export type UserResponse = {
+  id: number;
+  email: string;
+  full_name: string;
+  phone: string | null;
+  role: string;
+  is_verified: boolean;
+};
+
 export const AuthApi = {
   login: (credentials: LoginCredentials) =>
-    api.post<{ access_token: string }>("/auth/login", credentials),
+    api.post<TokenResponse>("/auth/login", credentials),
   register: (credentials: RegisterCredentials) =>
-    api.post<{ access_token: string }>("/auth/register", credentials),
-  me: () => api.get("/auth/me"),
+    api.post<TokenResponse>("/auth/register", credentials),
+  me: () => api.get<UserResponse>("/auth/me"),
+  updateProfile: (data: { full_name?: string; phone?: string }) =>
+    api.put<UserResponse>("/auth/me", data),
+};
+
+export type RateHistoryPoint = { date: string; rate: number };
+export type RateHistory = {
+  currency: string;
+  base: string;
+  data: RateHistoryPoint[];
 };
 
 export const WalletApi = {
   rates: () => api.get<Record<string, number>>("/wallets/rates"),
   list: () => api.get<WalletBalance[]>("/wallets"),
   history: (ccy: string) => api.get<LedgerEntry[]>(`/wallets/${ccy}/history`),
+  rateHistory: (currency = "USD") =>
+    api.get<RateHistory>(`/wallets/rates/history`, { params: { currency } }),
   recentTransactions: (limit = 10) =>
     api.get<LedgerEntry[]>(`/wallets/transactions/recent?limit=${limit}`),
   // convert_percentage carries the AI split recommendation (100 = convert all now).
@@ -103,10 +131,83 @@ export const PaymentApi = {
     ),
 };
 
+export type FraudFactor = {
+  key: string;
+  label: string;
+};
+
+export type FraudRecommendation = {
+  title: string;
+  desc: string;
+  bg: string;
+  iconColor: string;
+};
+
+export type FraudAnalysis = {
+  has_data: boolean;
+  message?: string;
+  risk_score?: number;
+  risk_level?: RiskLevel;
+  flagged?: boolean;
+  recommended_action?: string;
+  factors?: FraudFactor[];
+  transaction?: {
+    id: number;
+    amount: string;
+    currency: string;
+    direction: string;
+    description: string;
+    created_at: string;
+  };
+  normal_activity?: {
+    avg_amount: number;
+    avg_amount_display: string;
+    top_currency: string;
+    currencies: string[];
+    active_hours: string;
+    total_transactions: number;
+  };
+  suspicious_activity?: {
+    amount: string;
+    currency: string;
+    time: string;
+    is_unusual_amount: boolean;
+    is_odd_hour: boolean;
+    is_unusual_currency: boolean;
+  };
+  recommendations?: FraudRecommendation[];
+};
+
+export type DeviceInfo = {
+  id: number;
+  name: string;
+  os: string;
+  last_active: string;
+  is_current: boolean;
+};
+
+export type NotificationPrefItem = {
+  key: string;
+  push: boolean;
+  email: boolean;
+};
+
+export const ProfileApi = {
+  devices: () => api.get<DeviceInfo[]>("/profile/devices"),
+  removeDevice: (id: number) => api.delete(`/profile/devices/${id}`),
+  notificationPrefs: () => api.get<NotificationPrefItem[]>("/profile/notifications"),
+  updateNotificationPref: (key: string, data: { push?: boolean; email?: boolean }) =>
+    api.put<NotificationPrefItem>(`/profile/notifications/${key}`, data),
+};
+
 export const InsightsApi = {
   fxAdvisory: (
     base = "SGD",
     quote = "IDR",
     opts?: { amount?: number; horizon_days?: number; risk_preference?: RiskPreference },
   ) => api.get<FxAdvisory>("/insights/fx-advisory", { params: { base, quote, ...opts } }),
+};
+
+export const FraudApi = {
+  analyze: () => api.get<FraudAnalysis>("/insights/fraud-analysis"),
 };

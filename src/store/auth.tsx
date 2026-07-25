@@ -11,6 +11,7 @@ export type LoginMethod = "email" | "phone";
 const SECURE_TOKEN_KEY = "nusawallet.token";
 const SECURE_NAME_KEY = "nusawallet.user-name";
 const SECURE_EMAIL_KEY = "nusawallet.user-email";
+const SECURE_ROLE_KEY = "nusawallet.user-role";
 export const ONBOARDING_COMPLETE_KEY = "nusawallet.onboarding-complete";
 export const SPLASH_COMPLETE_KEY = "nusawallet.splash-complete";
 
@@ -20,6 +21,7 @@ type AuthState = {
   loading: boolean;
   userName: string | null;
   userEmail: string | null;
+  userRole: string | null;
   login: (identifier: string, password: string, method?: LoginMethod) => Promise<void>;
   register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
@@ -53,15 +55,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     async function hydrateAuth() {
       try {
         const storedToken = await hydrateToken();
-        const [[_, onboardedStr], storedName, storedEmail] = await Promise.all([
+        const [[_, onboardedStr], storedName, storedEmail, storedRole] = await Promise.all([
           AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY).then((v) => ["k", v ?? ""] as const),
           secureGet(SECURE_NAME_KEY),
           secureGet(SECURE_EMAIL_KEY),
+          secureGet(SECURE_ROLE_KEY),
         ]);
         const completedOnboarding = onboardedStr === "true" || Boolean(storedToken);
 
@@ -69,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setHasOnboarded(completedOnboarding);
         setUserName(storedName);
         setUserEmail(storedEmail);
+        setUserRole(storedRole);
 
         if (storedToken && onboardedStr !== "true") {
           await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, "true");
@@ -90,18 +95,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  async function persist(t: string, name?: string, email?: string) {
+  async function persist(t: string, name: string, email: string, role: string) {
     setAuthToken(t);
-    await Promise.all([
-      secureSet(SECURE_TOKEN_KEY, t),
-      AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, "true"),
-      name ? secureSet(SECURE_NAME_KEY, name) : Promise.resolve(),
-      email ? secureSet(SECURE_EMAIL_KEY, email) : Promise.resolve(),
-    ]);
     setToken(t);
     setHasOnboarded(true);
-    if (name) setUserName(name);
-    if (email) setUserEmail(email);
+    setUserName(name);
+    setUserEmail(email);
+    setUserRole(role);
+    await Promise.all([
+      secureSet(SECURE_TOKEN_KEY, t),
+      secureSet(SECURE_NAME_KEY, name),
+      secureSet(SECURE_EMAIL_KEY, email),
+      secureSet(SECURE_ROLE_KEY, role),
+      AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, "true"),
+    ]);
     router.replace("/(tabs)");
   }
 
@@ -110,9 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ? { email: identifier, password }
       : { phone: identifier, password };
     const { data } = await AuthApi.login(credentials);
-    const name = identifier.split("@")[0].replace(/[^a-zA-Z]/g, " ");
-    const displayName = name.replace(/\b\w/g, (c) => c.toUpperCase());
-    await persist(data.access_token, displayName, identifier);
+    await persist(data.access_token, data.full_name, data.email, data.role);
   }
 
   async function register(credentials: RegisterCredentials) {
@@ -125,18 +130,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       secureDelete(SECURE_TOKEN_KEY),
       secureDelete(SECURE_NAME_KEY),
       secureDelete(SECURE_EMAIL_KEY),
+      secureDelete(SECURE_ROLE_KEY),
       AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, "true"),
     ]);
     setToken(null);
     setHasOnboarded(true);
     setUserName(null);
     setUserEmail(null);
+    setUserRole(null);
     router.replace("/(auth)/login");
   }
 
   return (
     <AuthContext.Provider
-      value={{ token, hasOnboarded, loading, userName, userEmail, login, register, logout }}
+      value={{ token, hasOnboarded, loading, userName, userEmail, userRole, login, register, logout }}
     >
       {children}
     </AuthContext.Provider>
