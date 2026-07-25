@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "@/components/ui";
@@ -126,7 +126,7 @@ export default function Profile() {
         <StaggerFadeIn index={5}>
           <View style={styles.appInfo}>
             <View style={styles.appInfoLogo}>
-              <Ionicons name="wallet" size={16} color={colors.accent} />
+              <Image source={require("@/../assets/app-icon.png")} style={{ width: 22, height: 22 }} resizeMode="contain" />
             </View>
             <Text style={styles.appInfoName}>NusaWallet v0.1.0</Text>
             <Text style={styles.appInfoDesc}>Multi-currency wallet with AI-powered insights</Text>

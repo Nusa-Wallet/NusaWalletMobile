@@ -1,31 +1,35 @@
 import { TextStyle } from "react-native";
 
 export const fonts = {
-  regular: undefined,
-  medium: undefined,
-  semibold: undefined,
-  bold: undefined,
+  regular: "Montserrat_400Regular",
+  medium: "Montserrat_500Medium",
+  semibold: "Montserrat_600SemiBold",
+  bold: "Montserrat_700Bold",
 };
 
+function font(weight: keyof typeof fonts, style?: Partial<TextStyle>): TextStyle {
+  return { fontFamily: fonts[weight], ...style } as TextStyle;
+}
+
 export const typography = {
-  h1: { fontSize: 28, fontWeight: "800", lineHeight: 34, letterSpacing: -0.5 } as TextStyle,
-  h2: { fontSize: 24, fontWeight: "700", lineHeight: 30, letterSpacing: -0.3 } as TextStyle,
-  h3: { fontSize: 20, fontWeight: "700", lineHeight: 26 } as TextStyle,
-  h4: { fontSize: 18, fontWeight: "700", lineHeight: 24 } as TextStyle,
-  h5: { fontSize: 22, fontWeight: "700", lineHeight: 28 } as TextStyle,
-  h6: { fontSize: 17, fontWeight: "700", lineHeight: 22 } as TextStyle,
-  body: { fontSize: 15, fontWeight: "400", lineHeight: 22 } as TextStyle,
-  bodyBold: { fontSize: 15, fontWeight: "600", lineHeight: 22 } as TextStyle,
-  caption: { fontSize: 13, fontWeight: "400", lineHeight: 18 } as TextStyle,
-  captionBold: { fontSize: 13, fontWeight: "600", lineHeight: 18 } as TextStyle,
-  small: { fontSize: 11, fontWeight: "400", lineHeight: 16 } as TextStyle,
-  smallBold: { fontSize: 11, fontWeight: "700", lineHeight: 16 } as TextStyle,
-  label: { fontSize: 12, fontWeight: "500", lineHeight: 16, letterSpacing: 0.3 } as TextStyle,
-  money: { fontSize: 32, fontWeight: "800", lineHeight: 38, letterSpacing: -0.5 } as TextStyle,
-  moneySmall: { fontSize: 26, fontWeight: "800", lineHeight: 32, letterSpacing: -0.3 } as TextStyle,
-  micro: { fontSize: 10, fontWeight: "500", lineHeight: 14 } as TextStyle,
-  microBold: { fontSize: 10, fontWeight: "700", lineHeight: 14 } as TextStyle,
-  tiny: { fontSize: 9, fontWeight: "500", lineHeight: 12 } as TextStyle,
+  h1: font("bold", { fontSize: 28, lineHeight: 34, letterSpacing: -0.5 }),
+  h2: font("bold", { fontSize: 24, lineHeight: 30, letterSpacing: -0.3 }),
+  h3: font("bold", { fontSize: 20, lineHeight: 26 }),
+  h4: font("bold", { fontSize: 18, lineHeight: 24 }),
+  h5: font("bold", { fontSize: 22, lineHeight: 28 }),
+  h6: font("bold", { fontSize: 17, lineHeight: 22 }),
+  body: font("regular", { fontSize: 15, lineHeight: 22 }),
+  bodyBold: font("semibold", { fontSize: 15, lineHeight: 22 }),
+  caption: font("regular", { fontSize: 13, lineHeight: 18 }),
+  captionBold: font("semibold", { fontSize: 13, lineHeight: 18 }),
+  small: font("regular", { fontSize: 11, lineHeight: 16 }),
+  smallBold: font("bold", { fontSize: 11, lineHeight: 16 }),
+  label: font("medium", { fontSize: 12, lineHeight: 16, letterSpacing: 0.3 }),
+  money: font("bold", { fontSize: 32, lineHeight: 38, letterSpacing: -0.5 }),
+  moneySmall: font("bold", { fontSize: 26, lineHeight: 32, letterSpacing: -0.3 }),
+  micro: font("medium", { fontSize: 10, lineHeight: 14 }),
+  microBold: font("bold", { fontSize: 10, lineHeight: 14 }),
+  tiny: font("medium", { fontSize: 9, lineHeight: 12 }),
 };
 
 export const fontSizes = {

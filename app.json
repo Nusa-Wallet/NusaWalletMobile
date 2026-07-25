@@ -4,6 +4,7 @@
     "slug": "nusawallet",
     "version": "0.1.0",
     "scheme": "nusawallet",
+    "icon": "./assets/app-icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -16,17 +17,20 @@
     "android": {
       "package": "com.nusawallet.app",
       "adaptiveIcon": {
-        "backgroundColor": "#0E2148"
+        "backgroundColor": "#0E2148",
+        "foregroundImage": "./assets/app-logo.png"
       }
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "favicon": "./assets/app-logo.png"
     },
     "plugins": [
       "expo-router",
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
