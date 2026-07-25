@@ -9,6 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LedgerEntry, WalletApi, WalletBalance } from "@/api/endpoints";
 import { Card } from "@/components/ui";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorView } from "@/components/ErrorView";
 import { MiniChart } from "@/components/MiniChart";
@@ -54,6 +55,7 @@ export default function WalletScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [converting, setConverting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -110,9 +112,8 @@ export default function WalletScreen() {
 
   const idrEquivalent = active !== "IDR" ? balance * rate : balance;
 
-  async function handleConvert() {
-    if (balance <= 0) return Alert.alert("Saldo kosong", "Tidak ada saldo untuk dikonversi.");
-    if (active === target) return Alert.alert("Tujuan tidak valid", "Pilih mata uang tujuan yang berbeda.");
+  async function executeConvert() {
+    setShowConfirm(false);
     setConverting(true);
     try {
       const { data } = await WalletApi.convert(active, target, balance);
@@ -127,6 +128,14 @@ export default function WalletScreen() {
       setConverting(false);
     }
   }
+
+  async function handleConvert() {
+    if (balance <= 0) return Alert.alert("Saldo kosong", "Tidak ada saldo untuk dikonversi.");
+    if (active === target) return Alert.alert("Tujuan tidak valid", "Pilih mata uang tujuan yang berbeda.");
+    setShowConfirm(true);
+  }
+
+  const confirmDetail = `${active} ${Number(balance).toLocaleString("en-US")} → ${target}`;
 
   if (loading && !refreshing) {
     return (
@@ -352,6 +361,17 @@ export default function WalletScreen() {
           </Card>
         </StaggerFadeIn>
       </ScrollView>
+
+      <ConfirmModal
+        visible={showConfirm}
+        title="Konversi Mata Uang"
+        message={`Konversi seluruh saldo ${active} ke ${target}?`}
+        detail={confirmDetail}
+        confirmLabel="Ya, Konversi"
+        loading={converting}
+        onConfirm={executeConvert}
+        onCancel={() => setShowConfirm(false)}
+      />
     </SafeAreaView>
   );
 }

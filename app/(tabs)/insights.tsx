@@ -16,6 +16,7 @@ import {
   WalletBalance,
 } from "@/api/endpoints";
 import { Card } from "@/components/ui";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { ErrorView } from "@/components/ErrorView";
 import { Skeleton } from "@/components/Skeleton";
 import { StaggerFadeIn } from "@/components/StaggerFadeIn";
@@ -147,6 +148,7 @@ export default function Insights() {
   const [risk, setRisk] = useState<RiskPreference>("MODERATE");
   const [usdBalance, setUsdBalance] = useState(1000);
   const [converting, setConverting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [wallets, setWallets] = useState<WalletBalance[]>([]);
   const [recent, setRecent] = useState<LedgerEntry[]>([]);
   const [rates, setRates] = useState<Record<string, number>>({ IDR: 1 });
@@ -199,7 +201,8 @@ export default function Insights() {
 
   useFocusEffect(useCallback(() => { fetchAll(risk); }, [fetchAll, risk]));
 
-  async function convertSplit() {
+  async function executeSplit() {
+    setShowConfirm(false);
     const pct = adv?.recommended_convert_percentage ?? 100;
     if (usdBalance <= 0) {
       Alert.alert("Saldo kosong", "Tidak ada saldo USD untuk dikonversi.");
@@ -217,6 +220,14 @@ export default function Insights() {
     } finally {
       setConverting(false);
     }
+  }
+
+  function convertSplit() {
+    if (usdBalance <= 0) {
+      Alert.alert("Saldo kosong", "Tidak ada saldo USD untuk dikonversi.");
+      return;
+    }
+    setShowConfirm(true);
   }
 
   const action = adv ? ACTION_META[adv.action] : null;
@@ -453,6 +464,17 @@ export default function Insights() {
           )}
         </StaggerFadeIn>
       </ScrollView>
+
+      <ConfirmModal
+        visible={showConfirm}
+        title="Konversi USD ke IDR"
+        message={`Konversi ${adv?.recommended_convert_percentage ?? 100}% saldo USD Anda ke IDR?`}
+        detail={`USD ${Number(usdBalance).toLocaleString("en-US")} → IDR`}
+        confirmLabel="Ya, Konversi"
+        loading={converting}
+        onConfirm={executeSplit}
+        onCancel={() => setShowConfirm(false)}
+      />
     </SafeAreaView>
   );
 }
