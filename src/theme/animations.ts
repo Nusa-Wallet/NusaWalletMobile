@@ -1,4 +1,4 @@
-import { Easing } from "react-native-reanimated";
+import { Easing } from "react-native";
 
 // Inspired by Rainbow's animationConfigs.ts — centralized spring/timing presets
 

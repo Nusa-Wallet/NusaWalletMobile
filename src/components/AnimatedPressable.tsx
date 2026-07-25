@@ -1,12 +1,5 @@
-import { useCallback } from "react";
-import { Pressable, PressableProps, StyleProp, ViewStyle } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
-
-import { springConfigs } from "@/theme/animations";
+import { useCallback, useRef } from "react";
+import { Animated, Pressable, PressableProps, StyleProp, ViewStyle } from "react-native";
 
 interface AnimatedPressableProps extends PressableProps {
   scaleTo?: number;
@@ -22,26 +15,32 @@ const AnimatedPressable = ({
   onPressOut,
   ...props
 }: AnimatedPressableProps) => {
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const scale = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = useCallback(
     (e: any) => {
-      scale.value = withSpring(scaleTo, springConfigs.press);
+      Animated.spring(scale, {
+        toValue: scaleTo,
+        useNativeDriver: true,
+        friction: 7,
+        tension: 180,
+      }).start();
       onPressIn?.(e);
     },
-    [scaleTo, onPressIn],
+    [onPressIn, scale, scaleTo],
   );
 
   const handlePressOut = useCallback(
     (e: any) => {
-      scale.value = withSpring(1, springConfigs.release);
+      Animated.spring(scale, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 6,
+        tension: 140,
+      }).start();
       onPressOut?.(e);
     },
-    [onPressOut],
+    [onPressOut, scale],
   );
 
   return (
@@ -50,7 +49,7 @@ const AnimatedPressable = ({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
     >
-      <Animated.View style={[animatedStyle, style as any]}>
+      <Animated.View style={[{ transform: [{ scale }] }, style as any]}>
         {children}
       </Animated.View>
     </Pressable>

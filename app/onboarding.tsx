@@ -3,7 +3,6 @@ import { Link, router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { colors, radius, spacing } from "@/theme/colors";
 import { fonts, fontSizes } from "@/theme/typography";
@@ -69,13 +68,13 @@ export default function Onboarding() {
       </View>
 
       <View style={s.body}>
-        <Animated.View key={i} entering={FadeInDown.duration(300)} style={s.slideContent}>
+        <View key={i} style={s.slideContent}>
           <View style={[s.iconWrap, { width: iconSize, height: iconSize, borderRadius: iconSize * 0.24 }]}>
             <Ionicons name={slide.icon as any} size={iconSize * 0.44} color={colors.accent} />
           </View>
           <Text style={[s.title, { fontSize: titleFont }]}>{slide.title}</Text>
           <Text style={s.desc}>{slide.desc}</Text>
-        </Animated.View>
+        </View>
 
         <View style={s.dots}>
           {SLIDES.map((_, idx) => (

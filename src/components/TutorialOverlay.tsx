@@ -1,7 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState } from "react";
-import { Modal, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Modal, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { colors, radius, spacing } from "@/theme/colors";
 import { fontSizes } from "@/theme/typography";
@@ -55,20 +54,27 @@ export async function markTutorialComplete() {
 export function TutorialOverlay({ onComplete }: { onComplete: () => void }) {
   const { width: screenWidth } = useWindowDimensions();
   const [step, setStep] = useState(0);
-  const fade = useSharedValue(0);
-  const slide = useSharedValue(30);
+  const fade = useRef(new Animated.Value(0)).current;
+  const slide = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
-    fade.value = 0;
-    slide.value = 30;
-    fade.value = withTiming(1, { duration: 300 });
-    slide.value = withTiming(0, { duration: 300 });
-  }, [step]);
+    fade.setValue(0);
+    slide.setValue(30);
+    Animated.parallel([
+      Animated.timing(fade, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slide, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fade, slide, step]);
 
-  const animStyle = useAnimatedStyle(() => ({
-    opacity: fade.value,
-    transform: [{ translateY: slide.value }],
-  }));
+  const animStyle = { opacity: fade, transform: [{ translateY: slide }] };
 
   const isLast = step === STEPS.length - 1;
   const current = STEPS[step];

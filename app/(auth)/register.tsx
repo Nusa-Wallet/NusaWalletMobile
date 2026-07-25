@@ -2,11 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { Redirect, router } from "expo-router";
 import { useRef, useState } from "react";
 import {
-  KeyboardAvoidingView, Platform,
+  Animated, KeyboardAvoidingView, Platform,
   ScrollView, StyleSheet, Text, useWindowDimensions, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 
 import { FormField, PasswordToggle } from "@/components/FormField";
 import { StaggerFadeIn } from "@/components/StaggerFadeIn";
@@ -20,17 +19,18 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 type RegisterField = "name" | "email" | "phone" | "password" | "confirmPassword";
 
 function useShakeField() {
-  const translateX = useSharedValue(0);
+  const translateX = useRef(new Animated.Value(0)).current;
   const shake = () => {
-    translateX.value = withSequence(
-      withTiming(-10, { duration: 55 }),
-      withTiming(10, { duration: 55 }),
-      withTiming(-7, { duration: 55 }),
-      withTiming(7, { duration: 55 }),
-      withTiming(0, { duration: 55 }),
-    );
+    translateX.setValue(0);
+    Animated.sequence([-10, 10, -7, 7, 0].map((toValue) => (
+      Animated.timing(translateX, {
+        toValue,
+        duration: 55,
+        useNativeDriver: true,
+      })
+    ))).start();
   };
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
+  const animatedStyle = { transform: [{ translateX }] };
   return { shake, animatedStyle };
 }
 
