@@ -23,8 +23,12 @@ EXPO_PUBLIC_API_URL=http://192.168.x.x:8000
 
 Make sure [NusaWalletBackend](../NusaWalletBackend) (port 8000) and
 [NusaWalletAI](../NusaWalletAI) (port 8001) are running, and the backend is seeded
-(`python -m app.seed`). Demo login uses password `password123` with either email
-`demo@nusawallet.id` or phone `081234567890`.
+(`python -m app.seed`). Demo credentials:
+
+| Nama | Email | Password |
+|------|-------|----------|
+| John Doe | john.doe@example.com | password123 |
+| Sarah Wijaya | sarah.wijaya@example.com | password123 |
 
 ## Structure (file-based routing)
 
