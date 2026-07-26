@@ -272,10 +272,10 @@ export default function FraudScreen() {
         {/* Action Buttons */}
         <View style={s.actionRow}>
           <AnimatedPressable style={s.btnPrimary} onPress={() => router.push({ pathname: "/verify", params: { amount: tx.amount, currency: tx.currency, time: suspicious.time, score: String(riskScore), level: riskLevel } })}>
-            <Text style={s.btnPrimaryText}>Verifikasi</Text>
+            <Text style={s.btnPrimaryText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Verifikasi</Text>
           </AnimatedPressable>
           <AnimatedPressable style={s.btnSecondary} onPress={() => router.back()}>
-            <Text style={s.btnSecondaryText}>Kembali</Text>
+            <Text style={s.btnSecondaryText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Kembali</Text>
           </AnimatedPressable>
         </View>
       </ScrollView>
@@ -324,13 +324,15 @@ const s = StyleSheet.create({
     flexDirection: "row", gap: spacing.sm,
   },
   btnPrimary: {
-    flex: 1, height: 52, borderRadius: radius.md,
+    flex: 1, height: 46, borderRadius: radius.md,
     backgroundColor: colors.primary, alignItems: "center", justifyContent: "center",
+    paddingHorizontal: spacing.sm, minWidth: 0,
   },
-  btnPrimaryText: { fontFamily: fonts.bold, fontSize: fontSizes.h6, color: "#fff" },
+  btnPrimaryText: { fontFamily: fonts.bold, fontSize: fontSizes.bodyAlt, color: "#fff", flexShrink: 1 },
   btnSecondary: {
-    flex: 1, height: 44, borderRadius: radius.md,
+    flex: 1, height: 46, borderRadius: radius.md,
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: "center", justifyContent: "center",
+    paddingHorizontal: spacing.sm, minWidth: 0,
   },
-  btnSecondaryText: { fontFamily: fonts.bold, fontSize: fontSizes.h6, color: colors.textPrimary },
+  btnSecondaryText: { fontFamily: fonts.bold, fontSize: fontSizes.bodyAlt, color: colors.textPrimary, flexShrink: 1 },
 });

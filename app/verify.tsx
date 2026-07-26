@@ -159,10 +159,10 @@ export default function VerifyScreen() {
             onPress={() => selected && Alert.alert("Verifikasi", `Verification method: ${selected}`)}
             disabled={!selected}
           >
-            <Text style={s.btnVerifyText}>Verifikasi</Text>
+            <Text style={s.btnVerifyText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Verifikasi</Text>
           </AnimatedPressable>
           <AnimatedPressable style={s.btnCancel} onPress={() => router.back()}>
-            <Text style={s.btnCancelText}>Batal</Text>
+            <Text style={s.btnCancelText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Batal</Text>
           </AnimatedPressable>
         </View>
       </ScrollView>
@@ -226,13 +226,15 @@ const s = StyleSheet.create({
     flexDirection: "row", gap: spacing.sm,
   },
   btnVerify: {
-    flex: 1, height: 52, borderRadius: radius.md,
+    flex: 1, height: 46, borderRadius: radius.md,
     backgroundColor: colors.primary, alignItems: "center", justifyContent: "center",
+    paddingHorizontal: spacing.sm, minWidth: 0,
   },
-  btnVerifyText: { fontFamily: fonts.bold, fontSize: fontSizes.h6, color: "#fff" },
+  btnVerifyText: { fontFamily: fonts.bold, fontSize: fontSizes.bodyAlt, color: "#fff", flexShrink: 1 },
   btnCancel: {
-    flex: 1, height: 44, borderRadius: radius.md,
+    flex: 1, height: 46, borderRadius: radius.md,
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: "center", justifyContent: "center",
+    paddingHorizontal: spacing.sm, minWidth: 0,
   },
-  btnCancelText: { fontFamily: fonts.bold, fontSize: fontSizes.h6, color: colors.textPrimary },
+  btnCancelText: { fontFamily: fonts.bold, fontSize: fontSizes.bodyAlt, color: colors.textPrimary, flexShrink: 1 },
 });
