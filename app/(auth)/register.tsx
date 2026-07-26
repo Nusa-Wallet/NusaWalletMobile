@@ -3,7 +3,7 @@ import { Redirect, router } from "expo-router";
 import { useRef, useState } from "react";
 import {
   Animated, KeyboardAvoidingView, Platform,
-  ScrollView, StyleSheet, Text, useWindowDimensions, View,
+  ScrollView, StyleSheet, Text, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -12,7 +12,6 @@ import { StaggerFadeIn } from "@/components/StaggerFadeIn";
 import { useAuth } from "@/store/auth";
 import { palette, colors, radius, spacing } from "@/theme/colors";
 import { fonts, fontSizes } from "@/theme/typography";
-import { scale } from "@/utils/responsive";
 import AnimatedPressable from "@/components/AnimatedPressable";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -35,11 +34,7 @@ function useShakeField() {
 }
 
 export default function Register() {
-  const { width: screenWidth } = useWindowDimensions();
   const { register, token, loading: authLoading } = useAuth();
-
-  if (authLoading) return null;
-  if (token) return <Redirect href="/(tabs)" />;
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -50,7 +45,9 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null);
   const [invalidField, setInvalidField] = useState<RegisterField | null>(null);
   const formShake = useShakeField();
-  const btnIconSize = scale(18, screenWidth);
+
+  if (authLoading) return null;
+  if (token) return <Redirect href="/(tabs)" />;
 
   const passwordChecks = [
     password.length >= 12,

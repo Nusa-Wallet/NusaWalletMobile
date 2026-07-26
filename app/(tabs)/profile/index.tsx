@@ -127,12 +127,12 @@ export default function Profile() {
               Apakah Anda yakin ingin keluar? Anda perlu masuk kembali untuk mengakses dompet Anda.
             </Text>
             <View style={styles.modalActions}>
-              <AnimatedPressable style={styles.modalCancel} onPress={() => setShowLogoutModal(false)}>
+              <Pressable style={styles.modalCancel} onPress={() => setShowLogoutModal(false)}>
                 <Text style={styles.modalCancelText}>Batal</Text>
-              </AnimatedPressable>
-              <AnimatedPressable style={styles.modalConfirm} onPress={handleLogout}>
+              </Pressable>
+              <Pressable style={styles.modalConfirm} onPress={handleLogout}>
                 <Text style={styles.modalConfirmText}>Keluar</Text>
-              </AnimatedPressable>
+              </Pressable>
             </View>
           </Pressable>
         </Pressable>
@@ -181,13 +181,13 @@ const styles = StyleSheet.create({
   modalDesc: { fontSize: fontSizes.bodyAlt, fontFamily: fonts.regular, color: colors.textSecondary, textAlign: "center", lineHeight: 20, marginBottom: spacing.lg },
   modalActions: { flexDirection: "row", gap: spacing.sm, width: "100%" },
   modalCancel: {
-    flex: 1, height: 44, borderRadius: radius.md,
+    flex: 1, minWidth: 0, height: 48, borderRadius: radius.md,
     alignItems: "center", justifyContent: "center",
     borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card,
   },
   modalCancelText: { color: colors.textPrimary, fontFamily: fonts.semibold, fontSize: fontSizes.body },
   modalConfirm: {
-    flex: 1, height: 44, borderRadius: radius.md,
+    flex: 1, minWidth: 0, height: 48, borderRadius: radius.md,
     alignItems: "center", justifyContent: "center",
     backgroundColor: colors.danger,
   },

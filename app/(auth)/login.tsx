@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-  Alert, Animated, Image, KeyboardAvoidingView, Platform,
+  Alert, Animated, Image, KeyboardAvoidingView, Platform, Pressable,
   ScrollView, StyleSheet, Text, useWindowDimensions, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -36,9 +36,6 @@ function useShake() {
 export default function Login() {
   const { width: screenWidth } = useWindowDimensions();
   const { login, token, loading: authLoading } = useAuth();
-
-  if (authLoading) return null;
-  if (token) return <Redirect href="/(tabs)" />;
   const { registered, email: registeredEmail } = useLocalSearchParams<{
     registered?: string;
     email?: string;
@@ -65,6 +62,9 @@ export default function Login() {
       if (registeredEmail) setEmail(registeredEmail);
     }
   }, [registered, registeredEmail]);
+
+  if (authLoading) return null;
+  if (token) return <Redirect href="/(tabs)" />;
 
   function rejectLogin(message: string) {
     setError(message);
@@ -238,7 +238,7 @@ export default function Login() {
             <StaggerFadeIn index={7}>
               <View style={s.registerSection}>
                 <Text style={s.registerPrompt}>Belum punya akun NusaWallet?</Text>
-                <AnimatedPressable
+                <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Daftar akun baru"
                   onPress={() => {
@@ -249,7 +249,7 @@ export default function Login() {
                 >
                   <Ionicons name="person-add-outline" size={btnIconSize} color={colors.accent} />
                   <Text style={s.registerLink}>Daftar Akun Baru</Text>
-                </AnimatedPressable>
+                </Pressable>
               </View>
             </StaggerFadeIn>
 
@@ -327,11 +327,12 @@ const s = StyleSheet.create({
   registerSection: { alignItems: "center", gap: spacing.sm, marginTop: spacing.lg },
   registerPrompt: { color: colors.textSecondary, fontSize: fontSizes.caption, fontFamily: fonts.regular },
   btnRegister: {
-    width: "100%", height: 44, borderRadius: radius.md,
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm,
+    width: "100%", minHeight: 46, borderRadius: radius.md,
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    columnGap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: 10,
     borderWidth: 1, borderColor: `${colors.accent}40`, backgroundColor: `${colors.accent}10`,
   },
-  registerLink: { color: colors.accent, fontSize: fontSizes.bodyAlt, fontFamily: fonts.bold },
+  registerLink: { color: colors.accent, fontSize: fontSizes.bodyAlt, fontFamily: fonts.bold, textAlign: "center", flexShrink: 1 },
   securityRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: spacing.lg },
   securityText: { color: colors.textSecondary, fontSize: fontSizes.label, fontFamily: fonts.regular },
 });
