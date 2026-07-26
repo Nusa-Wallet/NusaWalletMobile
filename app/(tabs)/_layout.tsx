@@ -23,9 +23,6 @@ export default function TabsLayout() {
   const { token, loading } = useAuth();
   const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-
-  if (loading) return null;
-  if (!token) return <Redirect href="/(auth)/login" />;
   const bottomPadding = Math.max(insets.bottom, 8);
   const receiveTabSize = scale(58, screenWidth);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -35,6 +32,9 @@ export default function TabsLayout() {
       if (!done) setShowTutorial(true);
     });
   }, []);
+
+  if (loading) return null;
+  if (!token) return <Redirect href="/(auth)/login" />;
 
   return (
     <>
