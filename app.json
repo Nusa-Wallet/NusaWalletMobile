@@ -9,6 +9,8 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
+      "image": "./assets/app-logo.png",
+      "resizeMode": "contain",
       "backgroundColor": "#0E2148"
     },
     "ios": {
