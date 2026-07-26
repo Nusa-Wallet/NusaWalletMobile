@@ -15,16 +15,9 @@ import { useAuth } from "@/store/auth";
 import { useNotifications } from "@/store/notifications";
 import { palette, colors, radius, spacing } from "@/theme/colors";
 import { formatMoney, formatRate, timeAgo, tidyDescription } from "@/utils/format";
-import { cardWidth, scale, scaleFont } from "@/utils/responsive";
+import { cardWidth, scaleFont } from "@/utils/responsive";
 import { CCY_COLORS, FLAG_IMAGES, FLAGS } from "@/constants";
 import { fonts, fontSizes } from "@/theme/typography";
-
-const QUICK_ACTIONS = [
-  { icon: "arrow-down-outline", label: "Terima", color: "#2B7FFF", route: "/(tabs)/receive" },
-  { icon: "swap-horizontal-outline", label: "Konversi", color: "#00BC7D", route: "/(tabs)/wallet" },
-  { icon: "arrow-up-outline", label: "Kirim", color: "#8E51FF", route: "/(tabs)/wallet" },
-  { icon: "time-outline", label: "Riwayat", color: "#FE9A00", route: "/(tabs)/wallet" },
-] as const;
 
 function useInsightCards(
   wallets: WalletBalance[], recent: LedgerEntry[],
@@ -107,7 +100,6 @@ export default function Home() {
 
   const wCardW = cardWidth(screenWidth, 2.5, spacing.lg, spacing.sm);
   const insCardW = (screenWidth - spacing.lg * 2 - spacing.sm) / 2;
-  const qIconSize = scale(48, screenWidth);
   const saldoFont = scaleFont(26, screenWidth);
   const nameFont = scaleFont(18, screenWidth);
 
@@ -286,22 +278,8 @@ export default function Home() {
         </StaggerFadeIn>
 
         <View style={s.body}>
-          {/* ── Quick Actions ── */}
-          <StaggerFadeIn index={1}>
-            <View style={s.quickActionRow}>
-              {QUICK_ACTIONS.map((action) => (
-                <AnimatedPressable key={action.label} onPress={() => router.push(action.route)} style={s.quickActionItem}>
-                  <View style={[s.quickActionIcon, { width: qIconSize, height: qIconSize, backgroundColor: action.color }]}>
-                    <Ionicons name={action.icon as any} size={qIconSize * 0.46} color="#fff" />
-                  </View>
-                  <Text style={s.quickActionLabel}>{action.label}</Text>
-                </AnimatedPressable>
-              ))}
-            </View>
-          </StaggerFadeIn>
-
           {/* ── Dompet Saya ── */}
-          <StaggerFadeIn index={2}>
+          <StaggerFadeIn index={1}>
             <View style={s.sectionRow}>
               <Text style={s.sectionTitle}>Dompet Saya</Text>
               <AnimatedPressable onPress={() => router.push("/(tabs)/wallet")}>
@@ -311,7 +289,7 @@ export default function Home() {
           </StaggerFadeIn>
 
           {nonIdr.length === 0 && !idrWallet ? (
-            <StaggerFadeIn index={3}>
+            <StaggerFadeIn index={2}>
               <EmptyState icon="wallet-outline" title="Belum ada dompet" description="Tambahkan mata uang asing untuk mulai bertransaksi." />
             </StaggerFadeIn>
           ) : (
@@ -459,10 +437,6 @@ const s = StyleSheet.create({
   miniLabel: { fontFamily: fonts.regular, color: "rgba(255,255,255,0.5)", fontSize: fontSizes.micro },
   miniVal: { fontFamily: fonts.semibold, fontSize: fontSizes.body, color: "#fff" },
   body: { paddingBottom: 32 },
-  quickActionRow: { flexDirection: "row", paddingHorizontal: spacing.lg, paddingVertical: spacing.md, gap: spacing.sm },
-  quickActionItem: { flex: 1, alignItems: "center", gap: spacing.xs },
-  quickActionIcon: { width: 48, height: 48, borderRadius: radius.lg, alignItems: "center", justifyContent: "center", elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 1.5 },
-  quickActionLabel: { fontFamily: fonts.medium, fontSize: fontSizes.small, color: colors.textSecondary },
   sectionRow: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
     paddingHorizontal: spacing.lg, marginBottom: spacing.sm, marginTop: spacing.sm,

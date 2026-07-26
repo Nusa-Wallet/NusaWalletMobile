@@ -269,12 +269,12 @@ export default function Receive() {
                 </View>
                 <View style={s.btnRow}>
                   <AnimatedPressable style={[s.actionBtn, { flex: 1 }]} onPress={copy}>
-                    <Ionicons name="copy-outline" size={16} color="#fff" />
-                    <Text style={s.actionBtnText}>Salin Link</Text>
+                    <Ionicons name="copy-outline" size={15} color="#fff" />
+                    <Text style={s.actionBtnText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Salin Link</Text>
                   </AnimatedPressable>
                   <AnimatedPressable style={[s.actionBtn, s.actionBtnOutline, { flex: 1 }]} onPress={share}>
-                    <Ionicons name="share-outline" size={16} color={colors.primary} />
-                    <Text style={[s.actionBtnText, { color: colors.primary }]}>Bagikan</Text>
+                    <Ionicons name="share-outline" size={15} color={colors.primary} />
+                    <Text style={[s.actionBtnText, { color: colors.primary }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Bagikan</Text>
                   </AnimatedPressable>
                 </View>
               </Card>
@@ -294,14 +294,14 @@ export default function Receive() {
                     onPress={() => simulatePayment("normal")}
                     disabled={paying}
                   >
-                    <Text style={[s.actionBtnText, { color: colors.primary }]}>Pembayaran Normal</Text>
+                    <Text style={[s.actionBtnText, s.scenarioBtnText, { color: colors.primary }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Pembayaran Normal</Text>
                   </AnimatedPressable>
                   <AnimatedPressable
                     style={[s.actionBtn, s.actionBtnOutline, { flex: 1 }]}
                     onPress={() => simulatePayment("suspicious")}
                     disabled={paying}
                   >
-                    <Text style={[s.actionBtnText, { color: colors.danger }]}>Mencurigakan</Text>
+                    <Text style={[s.actionBtnText, s.scenarioBtnText, { color: colors.danger }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Mencurigakan</Text>
                   </AnimatedPressable>
                 </View>
 
@@ -406,10 +406,12 @@ const s = StyleSheet.create({
   btnRow: { flexDirection: "row", gap: spacing.sm },
   actionBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 6, height: 44, borderRadius: radius.md, backgroundColor: colors.primary,
+    gap: 5, height: 42, borderRadius: radius.md, backgroundColor: colors.primary,
+    paddingHorizontal: 8, minWidth: 0,
   },
   actionBtnOutline: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border },
-  actionBtnText: { color: "#fff", fontFamily: fonts.bold, fontSize: fontSizes.bodyAlt },
+  actionBtnText: { color: "#fff", fontFamily: fonts.bold, fontSize: fontSizes.caption, flexShrink: 1 },
+  scenarioBtnText: { fontSize: fontSizes.label },
   fraudResult: {
     backgroundColor: colors.background, borderRadius: radius.md,
     padding: spacing.md, gap: spacing.sm,

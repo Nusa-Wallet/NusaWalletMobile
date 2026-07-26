@@ -210,11 +210,11 @@ export default function WalletScreen() {
             <View style={s.actionRow}>
               <AnimatedPressable style={s.btnPrimary} onPress={handleConvert}>
                 <Ionicons name="swap-horizontal-outline" size={14} color="#fff" />
-                <Text style={s.btnPrimaryText}>Konversi</Text>
+                <Text style={s.btnPrimaryText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Konversi</Text>
               </AnimatedPressable>
               <AnimatedPressable style={s.btnSecondary} onPress={() => router.push({ pathname: "/fraud", params: { currency: active } })}>
                 <Ionicons name="shield-outline" size={14} color={palette.navy50} />
-                <Text style={s.btnSecondaryText}>AI Fraud</Text>
+                <Text style={s.btnSecondaryText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>AI Fraud</Text>
               </AnimatedPressable>
             </View>
           </View>
@@ -320,16 +320,18 @@ const s = StyleSheet.create({
   actionRow: { flexDirection: "row", gap: spacing.sm },
   btnPrimary: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: spacing.sm, height: 52, borderRadius: radius.md,
+    gap: 6, height: 46, borderRadius: radius.md,
     backgroundColor: colors.primary,
+    paddingHorizontal: 8, minWidth: 0,
   },
-  btnPrimaryText: { fontFamily: fonts.bold, fontSize: fontSizes.h6, color: "#fff" },
+  btnPrimaryText: { fontFamily: fonts.bold, fontSize: fontSizes.bodyAlt, color: "#fff", flexShrink: 1 },
   btnSecondary: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: spacing.sm, height: 44, borderRadius: radius.md,
+    gap: 6, height: 46, borderRadius: radius.md,
     backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.primary,
+    paddingHorizontal: 8, minWidth: 0,
   },
-  btnSecondaryText: { fontFamily: fonts.bold, fontSize: fontSizes.h6, color: colors.primary },
+  btnSecondaryText: { fontFamily: fonts.bold, fontSize: fontSizes.bodyAlt, color: colors.primary, flexShrink: 1 },
 
   chartCard: {
     marginHorizontal: spacing.lg, marginTop: spacing.md,
